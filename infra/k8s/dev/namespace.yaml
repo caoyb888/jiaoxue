@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: smart-edu-dev
+  labels:
+    app: smart-edu
+    env: dev

@@ -1,5 +1,5 @@
-export { http } from './client'
+export { http, setAccessToken } from './client'
 export { authApi } from './modules/auth'
 export { userApi } from './modules/user'
 export type { TokenVO, SmsLoginDTO } from './modules/auth'
-export type { UserVO, UserQueryParams, PageResult } from './modules/user'
+export type { UserVO, UserQueryParams, PageResult, DeptTreeNode, RoleVO } from './modules/user'

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edu-auth
+  namespace: smart-edu-dev
+  labels:
+    app: edu-auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edu-auth
+  template:
+    metadata:
+      labels:
+        app: edu-auth
+    spec:
+      containers:
+        - name: edu-auth
+          image: registry.smu.edu.cn/smart-edu/edu-auth:latest
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: edu-common-config
+            - secretRef:
+                name: edu-secrets
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edu-auth
+  namespace: smart-edu-dev
+spec:
+  selector:
+    app: edu-auth
+  ports:
+    - port: 8081
+      targetPort: 8081

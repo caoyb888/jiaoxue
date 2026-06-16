@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edu-gateway
+  namespace: smart-edu-dev
+  labels:
+    app: edu-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edu-gateway
+  template:
+    metadata:
+      labels:
+        app: edu-gateway
+    spec:
+      containers:
+        - name: edu-gateway
+          image: registry.smu.edu.cn/smart-edu/edu-gateway:latest
+          ports:
+            - containerPort: 18080
+          envFrom:
+            - configMapRef:
+                name: edu-common-config
+            - secretRef:
+                name: edu-secrets
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 18080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edu-gateway
+  namespace: smart-edu-dev
+spec:
+  type: NodePort
+  selector:
+    app: edu-gateway
+  ports:
+    - port: 18080
+      targetPort: 18080
+      nodePort: 30080

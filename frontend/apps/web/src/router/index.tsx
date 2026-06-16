@@ -4,6 +4,7 @@ import { useAuthStore } from '@edu/store'
 
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'))
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage'))
+const UserManagePage = lazy(() => import('../pages/admin/users/UserManagePage'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn())
@@ -21,6 +22,14 @@ export function AppRouter() {
             element={
               <RequireAuth>
                 <DashboardPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireAuth>
+                <UserManagePage />
               </RequireAuth>
             }
           />

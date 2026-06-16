@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edu-common-config
+  namespace: smart-edu-dev
+data:
+  NACOS_ADDR: "edu-nacos:8848"
+  NACOS_NAMESPACE: "dev"
+  DB_HOST: "edu-mysql"
+  DB_PORT: "3306"
+  REDIS_HOST: "edu-redis"
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: "edu-kafka:9092"
+  MINIO_ENDPOINT: "http://edu-minio:9000"
+  ES_URIS: "http://edu-elasticsearch:9200"
+  MONGO_URI: "mongodb://root:edu_dev_2026@edu-mongo:27017"
+  CLICKHOUSE_URL: "jdbc:clickhouse://edu-clickhouse:8123/edu_stat_db"
