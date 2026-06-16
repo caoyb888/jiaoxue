@@ -119,29 +119,23 @@ services:
       retries: 5
 
   # ─── Nacos 2.3 ───────────────────────────────────────────────────────────────
+  # 开发环境使用嵌入式 Derby 模式，无需初始化 MySQL Nacos schema
+  # 生产环境切换为 MySQL 持久化（需提前导入 nacos-mysql.sql）
   edu-nacos:
     image: nacos/nacos-server:v2.3.2
     container_name: edu-nacos
     restart: unless-stopped
-    depends_on:
-      edu-mysql:
-        condition: service_healthy
     ports:
       - "18848:8848"
       - "19848:9848"
       - "19849:9849"
     environment:
       MODE: standalone
-      SPRING_DATASOURCE_PLATFORM: mysql
-      MYSQL_SERVICE_HOST: edu-mysql
-      MYSQL_SERVICE_PORT: 3306
-      MYSQL_SERVICE_DB_NAME: nacos_config
-      MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: edu_dev_2026
-      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_PLATFORM: ''
       NACOS_AUTH_ENABLE: 'false'
       JVM_XMS: 256m
       JVM_XMX: 512m
+      PREFER_HOST_MODE: hostname
     volumes:
       - edu-nacos-data:/home/nacos/data
     networks:
@@ -164,7 +158,8 @@ services:
     networks:
       - edu-net
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/edu_ai_db --quiet
+      # mongo 4.4 使用 mongo shell（非 mongosh）
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/edu_ai_db --quiet
       interval: 10s
       timeout: 5s
       retries: 5
