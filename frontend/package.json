@@ -1,0 +1,20 @@
+{
+  "name": "smart-edu-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "山东管理学院智慧教学系统前端",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:bigscreen": "pnpm --filter bigscreen dev",
+    "dev:weapp": "pnpm --filter weapp dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

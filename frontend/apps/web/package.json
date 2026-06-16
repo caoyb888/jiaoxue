@@ -1,0 +1,48 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@edu/api": "workspace:*",
+    "@edu/store": "workspace:*",
+    "@edu/ui": "workspace:*",
+    "@edu/utils": "workspace:*",
+    "@tanstack/react-query": "^5.45.0",
+    "axios": "^1.7.2",
+    "@tanstack/react-query-devtools": "^5.45.0",
+    "echarts": "^5.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.24.0",
+    "tiptap": "^2.4.0",
+    "zustand": "^4.5.4",
+    "idb": "^8.0.0",
+    "dompurify": "^3.1.5"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^2.0.3",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^9.6.0",
+    "jsdom": "^24.1.1",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3",
+    "vitest": "^2.0.3"
+  }
+}

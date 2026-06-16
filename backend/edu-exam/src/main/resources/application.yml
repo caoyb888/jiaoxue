@@ -1,0 +1,21 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: edu-exam
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:100.84.68.115:18848}
+        namespace: ${NACOS_NAMESPACE:dev}
+      config:
+        server-addr: ${NACOS_ADDR:100.84.68.115:18848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        file-extension: yaml
+
+logging:
+  level:
+    cn.smu.edu: INFO

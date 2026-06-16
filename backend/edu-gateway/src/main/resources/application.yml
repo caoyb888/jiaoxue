@@ -1,0 +1,85 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: edu-gateway
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:100.84.68.115:18848}
+        namespace: ${NACOS_NAMESPACE:dev}
+      config:
+        server-addr: ${NACOS_ADDR:100.84.68.115:18848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        file-extension: yaml
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: edu-auth
+          uri: lb://edu-auth
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: edu-user
+          uri: lb://edu-user
+          predicates:
+            - Path=/api/v1/user/**,/api/v1/dept/**,/api/v1/role/**
+        - id: edu-course
+          uri: lb://edu-course
+          predicates:
+            - Path=/api/v1/course/**,/api/v1/lesson/**,/api/v1/material/**
+        - id: edu-interaction
+          uri: lb://edu-interaction
+          predicates:
+            - Path=/api/v1/interaction/**,/api/v1/attend/**,/api/v1/barrage/**
+        - id: edu-exam
+          uri: lb://edu-exam
+          predicates:
+            - Path=/api/v1/exam/**,/api/v1/question/**
+        - id: edu-grade
+          uri: lb://edu-grade
+          predicates:
+            - Path=/api/v1/grade/**
+        - id: edu-ai
+          uri: lb://edu-ai
+          predicates:
+            - Path=/api/v1/ai/**
+          filters:
+            - RemoveRequestHeader=Content-Length
+        - id: edu-stat
+          uri: lb://edu-stat
+          predicates:
+            - Path=/api/v1/stat/**
+        - id: edu-file
+          uri: lb://edu-file
+          predicates:
+            - Path=/api/v1/file/**
+        - id: edu-notify-ws
+          uri: lb://edu-notify
+          predicates:
+            - Path=/ws/**
+        - id: edu-admin
+          uri: lb://edu-admin
+          predicates:
+            - Path=/api/v1/admin/**
+        - id: edu-jwxt
+          uri: lb://edu-jwxt
+          predicates:
+            - Path=/api/v1/jwxt/**
+  webflux:
+    codec:
+      max-in-memory-size: 10MB
+
+edu:
+  jwt:
+    public-key: ${JWT_PUBLIC_KEY:classpath:jwt/public.pem}
+
+logging:
+  level:
+    cn.smu.edu: INFO
+    org.springframework.cloud.gateway: WARN

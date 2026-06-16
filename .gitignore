@@ -1,0 +1,69 @@
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+!**/src/main/**/*.jar
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+.classpath
+.project
+.settings/
+*.iml
+*.ipr
+*.iws
+.idea/
+out/
+
+# ===== Spring Boot =====
+application-prod.yml
+application-prod.yaml
+**/config/application-prod*
+**/config/*-secret*
+
+# ===== Node / pnpm =====
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+.turbo/
+*.local
+.env
+.env.*
+!.env.example
+
+# ===== 前端构建产物 =====
+frontend/apps/*/dist/
+frontend/apps/weapp/dist/
+frontend/packages/*/dist/
+
+# ===== 敏感配置（等保红线：禁止提交密钥/密码）=====
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+.secrets
+
+# ===== 日志 =====
+*.log
+logs/
+/tmp/
+
+# ===== Docker =====
+.docker/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== IDE =====
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
