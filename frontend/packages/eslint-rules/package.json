@@ -1,0 +1,7 @@
+{
+  "name": "@edu/eslint-rules",
+  "version": "1.0.0",
+  "description": "自定义 ESLint 规则（等保/架构约束）",
+  "main": "src/index.js",
+  "private": true
+}

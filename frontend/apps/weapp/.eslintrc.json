@@ -1,0 +1,14 @@
+{
+  "root": true,
+  "plugins": ["@edu/eslint-rules"],
+  "rules": {
+    "@edu/eslint-rules/no-dom-in-weapp": "error"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  }
+}

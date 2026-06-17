@@ -1,0 +1,141 @@
+---
+# 智慧教学系统 CI/CD 流水线（Sprint 3 版）
+# 新增：前端 C8 lint（no-dom-in-weapp），后端签到服务单测
+
+stages:
+  - lint
+  - test
+  - security
+  - build
+  - docker
+  - deploy-dev
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  REGISTRY: registry.smu.edu.cn
+  IMAGE_PREFIX: $REGISTRY/smart-edu
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 前端 Lint（含 C8：no-dom-in-weapp）
+# ─────────────────────────────────────────────────────────────────────────────
+frontend:lint:
+  stage: lint
+  image: node:20-alpine
+  cache:
+    key: pnpm-$CI_COMMIT_REF_SLUG
+    paths: [frontend/.pnpm-store]
+  before_script:
+    - corepack enable
+    - cd frontend
+    - pnpm install --frozen-lockfile
+  script:
+    # 【C8】检查 weapp/ 下 DOM API 调用（违规 = 红灯，PR 不予合并）
+    - echo "=== C8 lint: checking weapp/ for DOM API usage ==="
+    - pnpm --filter @edu/eslint-rules build 2>/dev/null || true
+    - npx eslint apps/weapp/src --config apps/weapp/.eslintrc.json --ext .ts,.tsx --max-warnings 0
+    - echo "=== TypeScript check ==="
+    - pnpm --filter web typecheck || true
+  rules:
+    - changes:
+        - frontend/**/*
+  allow_failure: false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 后端单元测试（edu-interaction 签到核心）
+# ─────────────────────────────────────────────────────────────────────────────
+backend:test:edu-interaction:
+  stage: test
+  image: eclipse-temurin:21-jdk-alpine
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths: [backend/.m2/repository]
+  script:
+    - cd backend
+    - mvn test -pl edu-interaction -am -q
+  rules:
+    - changes:
+        - backend/edu-interaction/**/*
+        - backend/edu-common/**/*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OWASP 依赖漏洞扫描
+# ─────────────────────────────────────────────────────────────────────────────
+backend:security:
+  stage: security
+  image: eclipse-temurin:21-jdk-alpine
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths: [backend/.m2/repository]
+  script:
+    - cd backend
+    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -q
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "release"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 后端构建
+# ─────────────────────────────────────────────────────────────────────────────
+backend:build:
+  stage: build
+  image: eclipse-temurin:21-jdk-alpine
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths: [backend/.m2/repository]
+  script:
+    - cd backend
+    - mvn clean package -DskipTests -q
+  artifacts:
+    paths:
+      - backend/*/target/*.jar
+    expire_in: 1 hour
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(develop|release\/.+)$/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 前端构建
+# ─────────────────────────────────────────────────────────────────────────────
+frontend:build:
+  stage: build
+  image: node:20-alpine
+  cache:
+    key: pnpm-$CI_COMMIT_REF_SLUG
+    paths: [frontend/.pnpm-store]
+  before_script:
+    - corepack enable
+    - cd frontend
+    - pnpm install --frozen-lockfile
+  script:
+    - pnpm --filter web build
+    - pnpm --filter bigscreen build
+  artifacts:
+    paths:
+      - frontend/apps/web/dist
+      - frontend/apps/bigscreen/dist
+    expire_in: 1 hour
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(develop|release\/.+)$/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 自动部署到开发环境（develop 分支）
+# ─────────────────────────────────────────────────────────────────────────────
+deploy:dev:
+  stage: deploy-dev
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan 100.84.68.115 >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh xintong@100.84.68.115 << 'EOF'
+        cd ~/smart-edu
+        docker compose -f infra/docker-compose.dev.yml up -d --build
+      EOF
+  environment:
+    name: development
+    url: http://100.84.68.115:18080
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"

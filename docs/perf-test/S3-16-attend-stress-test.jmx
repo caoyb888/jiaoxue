@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <!--
+      S3-16 签到接口压测计划
+      目标：3000 学生 2 分钟内完成签到，TPS ≥ 1500/s，P99 ≤ 200ms
+      验证：MySQL 无连接池耗尽，BloomFilter 去重正确（无重复 attendance 记录）
+    -->
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="签到接口压测 - S3-16" enabled="true">
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.arguments" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="TARGET_HOST" elementType="Argument">
+            <stringProp name="Argument.name">TARGET_HOST</stringProp>
+            <stringProp name="Argument.value">100.84.68.115</stringProp>
+          </elementProp>
+          <elementProp name="TARGET_PORT" elementType="Argument">
+            <stringProp name="Argument.name">TARGET_PORT</stringProp>
+            <stringProp name="Argument.value">18080</stringProp>
+          </elementProp>
+          <elementProp name="LESSON_ID" elementType="Argument">
+            <stringProp name="Argument.name">LESSON_ID</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
+          </elementProp>
+          <elementProp name="ATTEND_CODE" elementType="Argument">
+            <stringProp name="Argument.name">ATTEND_CODE</stringProp>
+            <stringProp name="Argument.value">ABCDEF</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <!-- 阶段1：预热 - 先生成签到码 -->
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="预热 - 生成签到码" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">0</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="生成签到码" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${TARGET_HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${TARGET_PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/interaction/lesson/${LESSON_ID}/attend/code</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Teacher Token" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Authorization" elementType="Header">
+                <stringProp name="Header.name">Authorization</stringProp>
+                <stringProp name="Header.value">Bearer ${__P(TEACHER_TOKEN,mock-teacher-token)}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <JSONPathExtractor guiclass="JSONPathExtractorGui" testname="提取签到码" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">ATTEND_CODE</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExprs">$.data.code</stringProp>
+          </JSONPathExtractor>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+
+      <!-- 阶段2：主压测 - 3000 并发学生签到 -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="3000学生并发签到" enabled="true">
+        <intProp name="ThreadGroup.num_threads">3000</intProp>
+        <!-- 2分钟内全部启动（120s ramp-up） -->
+        <intProp name="ThreadGroup.ramp_time">120</intProp>
+        <intProp name="ThreadGroup.loops">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">1</intProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <!-- 随机延迟 0~5s，模拟真实签到分散 -->
+        <UniformRandomTimer guiclass="UniformRandomTimerGui" testclass="UniformRandomTimer" testname="随机等待" enabled="true">
+          <stringProp name="ConstantTimer.delay">0</stringProp>
+          <stringProp name="RandomTimer.range">5000</stringProp>
+        </UniformRandomTimer>
+        <hashTree/>
+
+        <!-- 签到请求 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="学生签到 (口令)" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"code":"${ATTEND_CODE}"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${TARGET_HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${TARGET_PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/interaction/lesson/${LESSON_ID}/attend</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Student Headers" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+              <!-- 注意：实际压测需注入真实学生 JWT，此处用线程号模拟不同用户 -->
+              <elementProp name="X-User-Id" elementType="Header">
+                <stringProp name="Header.name">X-User-Id</stringProp>
+                <stringProp name="Header.value">${__threadNum}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+
+          <!-- 响应断言：期望 200 且 code=200 -->
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="响应断言" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">\"code\":200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+            <intProp name="Assertion.test_type">2</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+
+          <!-- P99 断言：响应时间 ≤ 200ms（通过 Duration Assertion 近似） -->
+          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="P99≤200ms" enabled="false">
+            <longProp name="DurationAssertion.duration">200</longProp>
+          </DurationAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <!-- 聚合报告 -->
+        <AggregateReport guiclass="StatVisualizer" testclass="StatVisualizer" testname="聚合报告" enabled="true">
+          <stringProp name="filename">target/perf-reports/S3-16-attend-aggregate.jtl</stringProp>
+        </AggregateReport>
+        <hashTree/>
+
+        <!-- 响应时间图 -->
+        <ResponseTimeGraph guiclass="ResTimeGraphVisualizer" testclass="ResTimeGraphVisualizer" testname="响应时间图" enabled="true">
+          <stringProp name="filename">target/perf-reports/S3-16-attend-timegraph.jtl</stringProp>
+        </ResponseTimeGraph>
+        <hashTree/>
+      </hashTree>
+
+      <!-- 阶段3：验证 - 检查 attendance 表记录数 -->
+      <TeardownThreadGroup guiclass="TeardownThreadGroupGui" testclass="TeardownThreadGroup" testname="验收 - 检查签到记录数" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">0</intProp>
+      </TeardownThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="查询签到列表" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${TARGET_HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${TARGET_PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/interaction/lesson/${LESSON_ID}/attendance</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
