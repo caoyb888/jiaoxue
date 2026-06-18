@@ -7,6 +7,8 @@ import cn.smu.edu.exam.domain.dto.SubmitAnswerDTO;
 import cn.smu.edu.exam.domain.entity.*;
 import cn.smu.edu.exam.domain.vo.*;
 import cn.smu.edu.exam.event.ExamSubmitEvent;
+import cn.smu.edu.exam.domain.dto.SubjectiveAnswerContent;
+import cn.smu.edu.exam.domain.entity.ExamAnswerAttachment;
 import cn.smu.edu.exam.repository.*;
 import cn.smu.edu.exam.service.AutoGradeService;
 import cn.smu.edu.exam.service.SubmitService;
@@ -42,6 +44,7 @@ public class SubmitServiceImpl implements SubmitService {
     private final StudentAnswerMapper studentAnswerMapper;
     private final ExamMonitorMapper monitorMapper;
     private final ExamSubmitQueueMapper submitQueueMapper;
+    private final ExamAnswerAttachmentMapper attachmentMapper;
     private final AutoGradeService autoGradeService;
     private final StringRedisTemplate redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -192,6 +195,9 @@ public class SubmitServiceImpl implements SubmitService {
             answer.setSubmittedAt(submittedAt);
             studentAnswerMapper.insert(answer);
 
+            // 主观题附件：解析 answer_content JSON，提取 attachments 写入关联表
+            saveAttachmentsIfPresent(answer, item.getAnswerContent(), queue);
+
             BigDecimal questionScore = scoreMap.getOrDefault(item.getQuestionId(), question.getScore());
             autoGradeService.grade(answer, question.getType(), question.getAnswer(), questionScore);
         }
@@ -202,6 +208,26 @@ public class SubmitServiceImpl implements SubmitService {
 
         log.info("交卷展开完成: queueId={}, publishId={}, studentId={}, answers={}",
                 queue.getId(), queue.getPublishId(), queue.getStudentId(), answers.size());
+    }
+
+    private void saveAttachmentsIfPresent(StudentAnswer answer, String answerContent, ExamSubmitQueue queue) {
+        if (!SubjectiveAnswerContent.isJsonFormat(answerContent)) return;
+        try {
+            SubjectiveAnswerContent content = objectMapper.readValue(answerContent, SubjectiveAnswerContent.class);
+            List<String> attachments = content.getAttachments();
+            for (int i = 0; i < attachments.size(); i++) {
+                ExamAnswerAttachment att = new ExamAnswerAttachment();
+                att.setStudentAnswerId(answer.getId());
+                att.setPublishId(queue.getPublishId());
+                att.setStudentId(queue.getStudentId());
+                att.setQuestionId(answer.getQuestionId());
+                att.setFileKey(attachments.get(i));
+                att.setSortOrder(i);
+                attachmentMapper.insert(att);
+            }
+        } catch (JsonProcessingException e) {
+            log.warn("解析主观题附件JSON失败，跳过附件关联: answerId={}, err={}", answer.getId(), e.getMessage());
+        }
     }
 
     // ── 查询汇总 ─────────────────────────────────────────────────────────────
@@ -229,6 +255,14 @@ public class SubmitServiceImpl implements SubmitService {
             vo.setComment(a.getComment());
             vo.setReviewStatus(a.getReviewStatus());
             vo.setSubmittedAt(a.getSubmittedAt());
+            // 主观题附件：从关联表加载 MinIO 路径列表
+            if (a.getId() != null) {
+                List<String> attachments = attachmentMapper
+                        .selectByStudentAnswerId(a.getId()).stream()
+                        .map(cn.smu.edu.exam.domain.entity.ExamAnswerAttachment::getFileKey)
+                        .collect(Collectors.toList());
+                if (!attachments.isEmpty()) vo.setAttachments(attachments);
+            }
             return vo;
         }).collect(Collectors.toList());
 

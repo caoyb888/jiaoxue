@@ -7,6 +7,8 @@ import cn.smu.edu.exam.domain.entity.*;
 import cn.smu.edu.exam.domain.vo.*;
 import cn.smu.edu.exam.event.ExamSubmitEvent;
 import cn.smu.edu.exam.repository.*;
+
+import java.util.Collections;
 import cn.smu.edu.exam.service.impl.SubmitServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -41,6 +43,7 @@ class SubmitServiceTest {
     @Mock private StudentAnswerMapper studentAnswerMapper;
     @Mock private ExamMonitorMapper monitorMapper;
     @Mock private ExamSubmitQueueMapper submitQueueMapper;
+    @Mock private ExamAnswerAttachmentMapper attachmentMapper;
     @Mock private AutoGradeService autoGradeService;
     @Mock private StringRedisTemplate redisTemplate;
     @Mock private ValueOperations<String, String> valueOps;
@@ -234,6 +237,7 @@ class SubmitServiceTest {
         when(studentAnswerMapper.sumScoreByPublishAndStudent(10L, 99L)).thenReturn(new BigDecimal("4.00"));
         when(studentAnswerMapper.countGraded(10L, 99L)).thenReturn(1);
         when(studentAnswerMapper.countCorrect(10L, 99L)).thenReturn(1);
+        when(attachmentMapper.selectByStudentAnswerId(1L)).thenReturn(Collections.emptyList());
 
         ExamScoreSummaryVO summary = service.getScoreSummary(10L, 99L);
 
