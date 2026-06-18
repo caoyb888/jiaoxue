@@ -52,8 +52,11 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: test
 
-      - name: Build all modules
-        run: mvn package -DskipTests -q --fail-at-end
+      - name: Build core modules
+        run: |
+          mvn package -DskipTests -q \
+            -pl edu-exam,edu-grade,edu-interaction,edu-course,edu-ai,edu-stat,edu-file,edu-notify,edu-live,edu-admin,edu-jwxt \
+            -am
         working-directory: backend
 
       - name: Upload build artifacts
