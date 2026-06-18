@@ -13,10 +13,11 @@ PROJ_DIR="$HOME/smart-edu"
 LOG_DIR="$HOME/.edu-dev/logs"
 PID_DIR="$HOME/.edu-dev/pids"
 KEY_DIR="$HOME/.edu-dev/keys"
-JAVA_HOME_BIN="${JAVA_HOME:-/usr/bin}"
 NACOS_ADDR="http://100.84.68.115:18848"
-MYSQL_CMD="docker exec edu-mysql mysql -u root -pedu_dev_2026"
-REDIS_CMD="docker exec edu-redis redis-cli -p 6379"
+
+# Maven 路径（已安装在 /opt/maven）
+export PATH="/opt/maven/bin:$PATH"
+MVN=mvn
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
@@ -50,11 +51,8 @@ info "Node.js $(node --version) ✓"
 pnpm --version 2>/dev/null >/dev/null || error "pnpm 未安装"
 info "pnpm $(pnpm --version) ✓"
 
-# 安装 Maven（若未安装）
 if ! command -v mvn &>/dev/null; then
-  warn "Maven 未安装，正在通过 apt 安装..."
-  sudo apt-get update -qq && sudo apt-get install -y -qq maven
-  info "Maven 安装完成 ✓"
+  error "Maven 未找到，请确认 /opt/maven/bin 已在 PATH 中"
 fi
 MVN_VER=$(mvn --version 2>&1 | head -1)
 info "$MVN_VER ✓"
@@ -195,7 +193,7 @@ if [ "$FRONTEND_ONLY" = false ]; then
     mvn clean package -DskipTests -q \
       -Dmaven.compiler.parameters=true \
       --no-transfer-progress \
-      2>&1 | tee "$LOG_DIR/maven-build.log" | grep -E "ERROR|BUILD|INFO.*---" || true
+      2>&1 | tee "$LOG_DIR/maven-build.log" | grep -E "ERROR|BUILD" || true
     if grep -q "BUILD SUCCESS" "$LOG_DIR/maven-build.log"; then
       info "Maven 编译成功 ✓"
     else
