@@ -1,6 +1,76 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { http } from '../client'
 
+// ─── Student Exam Types ───────────────────────────────────────────────────────
+
+export interface ExamEnterDTO {
+  password?: string
+}
+
+export interface PaperQuestionDetailVO {
+  id: number
+  questionId: number
+  score: string
+  sortOrder: number
+  question: {
+    id: number
+    type: number
+    content: string
+    answer: string | null
+    options: QuestionOptionVO[]
+  }
+}
+
+export interface ExamEnterVO {
+  publishId: number
+  paperId: number
+  startTime: string
+  endTime: string
+  durationMin: number
+  enableMonitor: number
+  faceVerifyType: number
+  allowCopy: number
+  shuffleQuestion: number
+  sessionStatus: string
+  faceVerifyPassed: number | null
+  firstEnter: boolean
+  questions: PaperQuestionDetailVO[]
+  totalQuestions: number
+  totalPages: number
+  currentPage: number
+}
+
+export interface ExamQuestionPageVO {
+  questions: PaperQuestionDetailVO[]
+  totalQuestions: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+}
+
+export interface AnswerItemDTO {
+  questionId: number
+  answerContent: string
+}
+
+export interface SubmitAnswerDTO {
+  answers: AnswerItemDTO[]
+  submitType?: string
+  clientSubmitAt?: string
+}
+
+export interface SubmitResultVO {
+  publishId: number
+  studentId: number
+  submittedCount: number
+  gradeResults: unknown[]
+}
+
+export interface HeartbeatVO {
+  sessionStatus: string
+  lastHeartbeatAt: string
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface QuestionBankVO {
@@ -115,6 +185,26 @@ export const QUESTION_TYPES: Record<number, string> = {
 export const OPTION_TYPES = new Set([1, 2, 6])
 
 // ─── API ─────────────────────────────────────────────────────────────────────
+
+export const examStudentApi = {
+  enterExam: (publishId: number, dto?: ExamEnterDTO): Promise<{ code: number; data: ExamEnterVO }> =>
+    http.post(`/v1/exam/publishes/${publishId}/enter`, dto ?? {}),
+
+  getQuestionsPage: (publishId: number, page: number): Promise<{ code: number; data: ExamQuestionPageVO }> =>
+    http.get(`/v1/exam/publishes/${publishId}/questions`, { params: { page } }),
+
+  submitExam: (publishId: number, dto: SubmitAnswerDTO): Promise<{ code: number; data: SubmitResultVO }> =>
+    http.post(`/v1/exam/publishes/${publishId}/submit`, dto),
+
+  heartbeat: (publishId: number): Promise<{ code: number; data: HeartbeatVO }> =>
+    http.put(`/v1/exam/publishes/${publishId}/heartbeat`),
+
+  reportMonitorEvent: (publishId: number, eventType: string, detail?: string): Promise<{ code: number }> =>
+    http.post(`/v1/exam/publishes/${publishId}/monitor/event`, { eventType, detail }),
+
+  faceVerify: (publishId: number, livePhotoBase64: string): Promise<{ code: number; data: { passed: boolean; score: number; sessionStatus: string } }> =>
+    http.post(`/v1/exam/publishes/${publishId}/face-verify`, { livePhotoBase64 }),
+}
 
 export const examApi = {
   listBanks: (): Promise<{ code: number; data: QuestionBankVO[] }> =>
