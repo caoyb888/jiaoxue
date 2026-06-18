@@ -20,6 +20,12 @@ public interface LessonBroadcastService {
     /** 广播 AI 任务完成通知 */
     void broadcastAiDone(Long lessonId, String taskType, String message);
 
+    /** 广播课堂题目（下发题目给所有在线学生） */
+    void broadcastQuestion(Long lessonId, Object questionPayload);
+
+    /** 广播课堂题目关闭（学生端停止作答） */
+    void broadcastQuestionClosed(Long lessonId, Long lessonQuestionId);
+
     /** 向指定用户发送单播消息 */
     void sendToUser(Long userId, String type, Object payload);
 }

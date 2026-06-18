@@ -47,6 +47,22 @@ public class LessonBroadcastServiceImpl implements LessonBroadcastService {
     }
 
     @Override
+    public void broadcastQuestion(Long lessonId, Object questionPayload) {
+        String topic = "/topic/lesson/" + lessonId + "/question";
+        messagingTemplate.convertAndSend(topic, questionPayload);
+        log.info("课堂发题广播: lessonId={}", lessonId);
+    }
+
+    @Override
+    public void broadcastQuestionClosed(Long lessonId, Long lessonQuestionId) {
+        String topic = "/topic/lesson/" + lessonId + "/question";
+        messagingTemplate.convertAndSend(topic, Map.of(
+                "event", "QUESTION_CLOSED",
+                "lessonQuestionId", lessonQuestionId));
+        log.info("课堂题目关闭广播: lessonId={}, lessonQuestionId={}", lessonId, lessonQuestionId);
+    }
+
+    @Override
     public void sendToUser(Long userId, String type, Object payload) {
         messagingTemplate.convertAndSendToUser(
                 userId.toString(),
