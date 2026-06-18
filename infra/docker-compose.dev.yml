@@ -25,6 +25,7 @@ volumes:
   edu-mongo-data:
   edu-minio-data:
   edu-es-data:
+  edu-es-plugins:
   edu-clickhouse-data:
   edu-xxljob-data:
 
@@ -202,6 +203,7 @@ services:
       - xpack.security.enrollment.enabled=false
     volumes:
       - edu-es-data:/usr/share/elasticsearch/data
+      - edu-es-plugins:/usr/share/elasticsearch/plugins
     networks:
       - edu-net
     healthcheck:

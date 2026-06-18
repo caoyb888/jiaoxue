@@ -14,10 +14,10 @@
 | S0-04 | Docker Compose 中间件部署 | ✅ 完成 | 已有 | 9容器运行中（含zookeeper），Kafka需修复 |
 | S0-05 | 中间件健康验证+修复 | ✅ 完成 | 2026-06-19 | 修复 KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092；9/9 全部 healthy/200 |
 | S0-06 | MySQL 业务库初始化 | ✅ 完成 | 2026-06-19 | 41张表+审计库2张表，3个测试账号(admin/teacher01/student01)，5个院系 |
-| S0-07 | Nacos dev 配置导入 | ❌ 待做 | — | Nacos 运行中，未导入服务配置 |
-| S0-08 | MinIO Bucket 初始化 | ❌ 待做 | — | MinIO 运行中，未创建 Bucket |
-| S0-09 | Elasticsearch 索引初始化 | ❌ 待做 | — | ES 运行中，无索引 |
-| S0-10 | ClickHouse 统计表初始化 | ❌ 待做 | — | ClickHouse 运行，需建表 |
+| S0-07 | Nacos dev 配置导入 | ✅ 完成 | 2026-06-19 | dev命名空间+14个服务配置（DB/Redis/Kafka/MongoDB/MinIO地址） |
+| S0-08 | MinIO Bucket 初始化 | ✅ 完成 | 2026-06-19 | 4个Bucket：edu-files/edu-exam-attach/edu-live-replay/edu-archive |
+| S0-09 | Elasticsearch 索引初始化 | ✅ 完成 | 2026-06-19 | 安装IK分词插件(v8.11.4)，创建edu_question+edu_courseware索引 |
+| S0-10 | ClickHouse 统计表初始化 | ✅ 完成 | 2026-06-19 | 新增clickhouse_schema.sql，3张统计表：lesson_event_log/lesson_stat_daily/dept_teaching_stat |
 | S0-11 | 本机开发工具确认 | ✅ 完成 | 已有 | Java 21(Temurin) / Node 20.20 / pnpm 10.33 / Docker 29 |
 | S0-12 | CI/CD 配置 | ⏭️ 适配 | — | 项目用 GitHub，.gitlab-ci.yml 已存在，跳过 GitLab Runner 注册 |
 
