@@ -15,6 +15,30 @@ spring:
         server-addr: ${NACOS_ADDR:100.84.68.115:18848}
         namespace: ${NACOS_NAMESPACE:dev}
         file-extension: yaml
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://100.84.68.115:13306/edu_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password: edu_dev_2026
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: 100.84.68.115
+      port: 16379
+      database: 4
+
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
 
 logging:
   level:
