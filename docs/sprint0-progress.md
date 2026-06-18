@@ -12,8 +12,8 @@
 | S0-02 | SSH 免密登录 | ✅ 完成 | 已有 | ssh onlyserver 无密码可用 |
 | S0-03 | Git 仓库同步机制 | ✅ 完成 | 已有 | receive.denyCurrentBranch=updateInstead，422文件已同步 |
 | S0-04 | Docker Compose 中间件部署 | ✅ 完成 | 已有 | 9容器运行中（含zookeeper），Kafka需修复 |
-| S0-05 | 中间件健康验证+修复 | ⏳ 进行中 | — | Kafka unhealthy（advertised listener配置问题）；ClickHouse 认证正常（密码 edu_dev_2026）|
-| S0-06 | MySQL 业务库初始化 | ❌ 待做 | — | edu_db 存在但 0 张表 |
+| S0-05 | 中间件健康验证+修复 | ✅ 完成 | 2026-06-19 | 修复 KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092；9/9 全部 healthy/200 |
+| S0-06 | MySQL 业务库初始化 | ✅ 完成 | 2026-06-19 | 41张表+审计库2张表，3个测试账号(admin/teacher01/student01)，5个院系 |
 | S0-07 | Nacos dev 配置导入 | ❌ 待做 | — | Nacos 运行中，未导入服务配置 |
 | S0-08 | MinIO Bucket 初始化 | ❌ 待做 | — | MinIO 运行中，未创建 Bucket |
 | S0-09 | Elasticsearch 索引初始化 | ❌ 待做 | — | ES 运行中，无索引 |
