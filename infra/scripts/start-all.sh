@@ -170,6 +170,23 @@ spring:
         spring.json.trusted.packages: \"*\"
 "
 
+nacos_publish "edu-gateway-dev.yaml" "DEFAULT_GROUP" "
+edu:
+  jwt:
+    public-key: \"-----BEGIN PUBLIC KEY-----\\n${PUBLIC_KEY_B64}\\n-----END PUBLIC KEY-----\"
+spring:
+  data:
+    redis:
+      host: 100.84.68.115
+      port: 16379
+      database: 0
+  cloud:
+    sentinel:
+      transport:
+        dashboard: 127.0.0.1:8858
+      eager: true
+"
+
 nacos_publish "edu-ai-sensitive-words" "EDU_AI" "
 words:
   - 推翻政府
