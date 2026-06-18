@@ -193,6 +193,9 @@
                         <source>21</source>
                         <target>21</target>
                         <encoding>UTF-8</encoding>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>

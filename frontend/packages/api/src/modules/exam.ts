@@ -63,6 +63,46 @@ export interface PageResult<T> {
   current: number
 }
 
+export interface ExamPaperVO {
+  id: number
+  classId: number
+  paperName: string
+  description: string | null
+  totalScore: string
+  questionCount: number
+  status: number
+  createdAt: string
+}
+
+export interface PaperQuestionVO {
+  id: number
+  paperId: number
+  questionId: number
+  score: string
+  sortOrder: number
+  questionType: number
+  content: string
+  answer: string | null
+  analysis: string | null
+  options: QuestionOptionVO[]
+}
+
+export interface ExamPaperCreateDTO {
+  classId: number
+  paperName: string
+  description?: string
+}
+
+export interface PaperQuestionAddDTO {
+  questionId: number
+  score: string
+}
+
+export interface PaperQuestionUpdateDTO {
+  score?: string
+  sortOrder?: number
+}
+
 export const QUESTION_TYPES: Record<number, string> = {
   1: '单选题',
   2: '多选题',
@@ -94,6 +134,30 @@ export const examApi = {
 
   deleteQuestion: (questionId: number): Promise<{ code: number }> =>
     http.delete(`/v1/exam/questions/${questionId}`),
+
+  listPapers: (classId: number): Promise<{ code: number; data: ExamPaperVO[] }> =>
+    http.get('/v1/exam/papers', { params: { classId } }),
+
+  createPaper: (dto: ExamPaperCreateDTO): Promise<{ code: number; data: ExamPaperVO }> =>
+    http.post('/v1/exam/papers', dto),
+
+  deletePaper: (paperId: number): Promise<{ code: number }> =>
+    http.delete(`/v1/exam/papers/${paperId}`),
+
+  listPaperQuestions: (paperId: number): Promise<{ code: number; data: PaperQuestionVO[] }> =>
+    http.get(`/v1/exam/papers/${paperId}/questions`),
+
+  addQuestionToPaper: (paperId: number, dto: PaperQuestionAddDTO): Promise<{ code: number; data: PaperQuestionVO }> =>
+    http.post(`/v1/exam/papers/${paperId}/questions`, dto),
+
+  updatePaperQuestion: (paperId: number, pqId: number, dto: PaperQuestionUpdateDTO): Promise<{ code: number }> =>
+    http.put(`/v1/exam/papers/${paperId}/questions/${pqId}`, dto),
+
+  removePaperQuestion: (paperId: number, pqId: number): Promise<{ code: number }> =>
+    http.delete(`/v1/exam/papers/${paperId}/questions/${pqId}`),
+
+  reorderPaperQuestions: (paperId: number, orderedIds: number[]): Promise<{ code: number }> =>
+    http.put(`/v1/exam/papers/${paperId}/questions/reorder`, { orderedIds }),
 }
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -142,6 +206,89 @@ export function useDeleteQuestion() {
       examApi.deleteQuestion(questionId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['exam', 'questions', variables.bankId] })
+    },
+  })
+}
+
+export function useExamPapers(classId: number | null) {
+  return useQuery({
+    queryKey: ['exam', 'papers', classId],
+    queryFn: () => examApi.listPapers(classId!).then((r) => r.data ?? []),
+    enabled: !!classId,
+    staleTime: 30_000,
+  })
+}
+
+export function usePaperQuestions(paperId: number | null) {
+  return useQuery({
+    queryKey: ['exam', 'paper-questions', paperId],
+    queryFn: () => examApi.listPaperQuestions(paperId!).then((r) => r.data ?? []),
+    enabled: !!paperId,
+    staleTime: 15_000,
+  })
+}
+
+export function useCreatePaper() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: ExamPaperCreateDTO) => examApi.createPaper(dto),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'papers', variables.classId] })
+    },
+  })
+}
+
+export function useDeletePaper() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paperId, classId }: { paperId: number; classId: number }) =>
+      examApi.deletePaper(paperId),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'papers', variables.classId] })
+    },
+  })
+}
+
+export function useAddQuestionToPaper() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paperId, dto }: { paperId: number; dto: PaperQuestionAddDTO }) =>
+      examApi.addQuestionToPaper(paperId, dto),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'paper-questions', variables.paperId] })
+    },
+  })
+}
+
+export function useUpdatePaperQuestion() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paperId, pqId, dto }: { paperId: number; pqId: number; dto: PaperQuestionUpdateDTO }) =>
+      examApi.updatePaperQuestion(paperId, pqId, dto),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'paper-questions', variables.paperId] })
+    },
+  })
+}
+
+export function useRemovePaperQuestion() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paperId, pqId }: { paperId: number; pqId: number }) =>
+      examApi.removePaperQuestion(paperId, pqId),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'paper-questions', variables.paperId] })
+    },
+  })
+}
+
+export function useReorderPaperQuestions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ paperId, orderedIds }: { paperId: number; orderedIds: number[] }) =>
+      examApi.reorderPaperQuestions(paperId, orderedIds),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['exam', 'paper-questions', variables.paperId] })
     },
   })
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.smu.edu.ai.repository.LessonReportMapper">
+
+    <select id="selectByLessonId" resultType="cn.smu.edu.ai.domain.entity.LessonReport">
+        SELECT id, lesson_id, attend_count, absent_count, attend_rate,
+               interact_count, quiz_count, duration_min, slide_count,
+               ai_summary, ai_mindmap_json, mindmap_visible, summary_visible,
+               gen_status, created_at, updated_at
+        FROM lesson_report
+        WHERE lesson_id = #{lessonId}
+        LIMIT 1
+    </select>
+
+    <update id="updateAiContent">
+        UPDATE lesson_report
+        SET ai_summary      = #{aiSummary},
+            ai_mindmap_json = #{aiMindmapJson},
+            gen_status      = #{genStatus},
+            updated_at      = NOW()
+        WHERE lesson_id = #{lessonId}
+    </update>
+
+</mapper>

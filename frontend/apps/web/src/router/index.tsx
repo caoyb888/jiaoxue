@@ -13,6 +13,8 @@ const StudentAttendPage = lazy(() => import('../pages/interaction/StudentAttendP
 const BarragePage = lazy(() => import('../pages/interaction/BarragePage'))
 const RollCallPage = lazy(() => import('../pages/interaction/RollCallPage'))
 const QuestionBankPage = lazy(() => import('../pages/exam/QuestionBankPage'))
+const ExamPaperPage = lazy(() => import('../pages/exam/ExamPaperPage'))
+const StudentAnswerPage = lazy(() => import('../pages/exam/StudentAnswerPage'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn())
@@ -49,8 +51,10 @@ export function AppRouter() {
           <Route path="/lesson/:lessonId/attend" element={<RequireAuth><StudentAttendPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/barrage" element={<RequireAuth><BarragePage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/roll-call" element={<RequireAuth><RollCallPage /></RequireAuth>} />
-          {/* Sprint 4 题库管理路由 */}
+          {/* Sprint 4 题库与试卷管理路由 */}
           <Route path="/exam/question-banks" element={<RequireAuth><QuestionBankPage /></RequireAuth>} />
+          <Route path="/exam/papers" element={<RequireAuth><ExamPaperPage /></RequireAuth>} />
+          <Route path="/lesson/:lessonId/answer" element={<RequireAuth><StudentAnswerPage /></RequireAuth>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

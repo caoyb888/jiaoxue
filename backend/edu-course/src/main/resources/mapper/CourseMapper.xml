@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.smu.edu.course.repository.CourseMapper">
+
+    <select id="selectCoursePage"
+            resultType="cn.smu.edu.course.domain.vo.CourseListItemVO">
+        SELECT
+            c.id,
+            c.course_code,
+            c.course_name,
+            d.dept_name,
+            c.credit,
+            c.course_type,
+            c.semester,
+            COUNT(cr.id) AS class_count
+        FROM course c
+        LEFT JOIN sys_dept d ON c.dept_id = d.id
+        LEFT JOIN class_room cr ON cr.course_id = c.id AND cr.is_deleted = 0
+        WHERE c.is_deleted = 0
+        <if test="semester != null and semester != ''">
+            AND c.semester = #{semester}
+        </if>
+        <if test="deptId != null">
+            AND c.dept_id = #{deptId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (c.course_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR c.course_code LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        GROUP BY c.id, c.course_code, c.course_name, d.dept_name,
+                 c.credit, c.course_type, c.semester
+        ORDER BY c.semester DESC, c.course_name ASC
+    </select>
+
+</mapper>

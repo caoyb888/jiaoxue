@@ -1,0 +1,76 @@
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "ik_smart_analyzer": {
+          "type": "custom",
+          "tokenizer": "ik_smart"
+        },
+        "ik_max_word_analyzer": {
+          "type": "custom",
+          "tokenizer": "ik_max_word"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "questionType": {
+        "type": "keyword"
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "options": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "answer": {
+        "type": "keyword",
+        "index": false
+      },
+      "analysis": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "difficulty": {
+        "type": "keyword"
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "courseId": {
+        "type": "long"
+      },
+      "courseName": {
+        "type": "keyword"
+      },
+      "creatorId": {
+        "type": "long"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "usedCount": {
+        "type": "integer"
+      },
+      "createdAt": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||epoch_millis"
+      },
+      "updatedAt": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||epoch_millis"
+      }
+    }
+  }
+}

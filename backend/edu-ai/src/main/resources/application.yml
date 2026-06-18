@@ -15,7 +15,69 @@ spring:
         server-addr: ${NACOS_ADDR:100.84.68.115:18848}
         namespace: ${NACOS_NAMESPACE:dev}
         file-extension: yaml
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:100.84.68.115}:${MYSQL_PORT:13306}/edu_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:edu_dev_2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:100.84.68.115}
+      port: ${REDIS_PORT:16379}
+      database: 5
+    mongodb:
+      uri: ${MONGO_URI:mongodb://100.84.68.115:17017/edu_ai}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:100.84.68.115:19092}
+    consumer:
+      group-id: edu-ai-task
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "cn.smu.edu.common.event"
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Spring AI — 手动配置多模型 Bean，禁用自动配置的默认连接检测
+spring.ai.openai:
+  api-key: ${OPENAI_API_KEY:placeholder}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  chat:
+    options:
+      model: gpt-4o
+
+# AI 网关配置
+ai:
+  gateway:
+    mock-mode: ${AI_MOCK_MODE:true}
+  security:
+    sensitive-words: ${AI_SENSITIVE_WORDS:}
+  model:
+    analysis:
+      base-url: ${AI_ANALYSIS_BASE_URL:https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat}
+      api-key: ${AI_ANALYSIS_API_KEY:placeholder}
+      model: ${AI_ANALYSIS_MODEL:ernie-4.0}
+    generation:
+      base-url: ${AI_GENERATION_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+      api-key: ${AI_GENERATION_API_KEY:placeholder}
+      model: ${AI_GENERATION_MODEL:qwen-max}
+    review:
+      base-url: ${AI_REVIEW_BASE_URL:https://api.openai.com/v1}
+      api-key: ${AI_REVIEW_API_KEY:placeholder}
+      model: ${AI_REVIEW_MODEL:gpt-4o}
 
 logging:
   level:
     cn.smu.edu: INFO
+    cn.smu.edu.ai.security: WARN

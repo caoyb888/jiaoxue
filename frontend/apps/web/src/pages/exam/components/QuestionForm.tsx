@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { QuestionCreateDTO, QuestionOptionDTO } from '@edu/api'
 import { QUESTION_TYPES, OPTION_TYPES } from '@edu/api'
+import { RichTextEditor, RichTextView } from './RichTextEditor'
 
 interface Props {
   bankId: number
@@ -27,6 +28,7 @@ export function QuestionForm({ bankId, onSubmit, onCancel, isSubmitting }: Props
   const [analysis, setAnalysis] = useState('')
   const [score, setScore] = useState('2.00')
   const [options, setOptions] = useState<QuestionOptionDTO[]>(defaultOptions())
+  const [showPreview, setShowPreview] = useState(false)
 
   const hasOptions = OPTION_TYPES.has(type)
   const isTrueFalse = type === 3
@@ -125,15 +127,34 @@ export function QuestionForm({ bankId, onSubmit, onCancel, isSubmitting }: Props
 
       {/* 题干 */}
       <div>
-        <label className={labelClass}>题干 *</label>
-        <textarea
-          required
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={3}
-          placeholder="请输入题目内容..."
-          className={inputClass}
-        />
+        <div className="flex items-center justify-between mb-1">
+          <label className={labelClass} style={{ marginBottom: 0 }}>题干 *</label>
+          <button
+            type="button"
+            onClick={() => setShowPreview((v) => !v)}
+            className="text-xs text-blue-500 hover:underline"
+          >
+            {showPreview ? '关闭预览' : '实时预览'}
+          </button>
+        </div>
+        <div className={showPreview ? 'grid grid-cols-2 gap-3' : ''}>
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder="请输入题目内容（支持富文本、插入图片）..."
+          />
+          {showPreview && (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 min-h-[80px]">
+              {content ? (
+                <RichTextView html={content} />
+              ) : (
+                <p className="text-xs text-gray-400">预览区域（在左侧输入后显示）</p>
+              )}
+            </div>
+          )}
+        </div>
+        {/* 隐藏 input 用于 HTML5 required 验证 */}
+        <input type="text" required value={content} onChange={() => {}} className="hidden" tabIndex={-1} />
       </div>
 
       {/* 选项（单选/多选/投票） */}

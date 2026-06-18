@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.smu.edu.course.repository.LessonMapper">
+
+    <resultMap id="lessonDetailMap"
+               type="cn.smu.edu.course.domain.vo.LessonDetailVO">
+        <id     property="id"            column="id"/>
+        <result property="classId"       column="class_id"/>
+        <result property="className"     column="class_name"/>
+        <result property="teacherId"     column="teacher_id"/>
+        <result property="teacherName"   column="teacher_name"/>
+        <result property="title"         column="title"/>
+        <result property="chapter"       column="chapter"/>
+        <result property="status"        column="status"/>
+        <result property="liveMode"      column="live_mode"/>
+        <result property="startTime"     column="start_time"/>
+        <result property="endTime"       column="end_time"/>
+        <result property="durationMin"   column="duration_min"/>
+        <result property="currentSlide"  column="current_slide"/>
+        <result property="replayUrl"     column="replay_url"/>
+        <result property="replayVisible" column="replay_visible"/>
+        <association property="material"
+                     javaType="cn.smu.edu.course.domain.vo.LessonDetailVO$MaterialVO">
+            <id     property="id"        column="mat_id"/>
+            <result property="title"     column="mat_title"/>
+            <result property="pageCount" column="mat_page_count"/>
+            <result property="slideDir"  column="mat_slide_dir"/>
+        </association>
+    </resultMap>
+
+    <sql id="lessonDetailCols">
+        l.id,
+        l.class_id,
+        cr.class_name,
+        l.teacher_id,
+        u.real_name   AS teacher_name,
+        l.title,
+        l.chapter,
+        l.status,
+        l.live_mode,
+        l.start_time,
+        l.end_time,
+        TIMESTAMPDIFF(MINUTE, l.start_time, IFNULL(l.end_time, NOW())) AS duration_min,
+        l.current_slide,
+        l.replay_url,
+        l.replay_visible,
+        m.id          AS mat_id,
+        m.title       AS mat_title,
+        m.page_count  AS mat_page_count,
+        m.slide_dir   AS mat_slide_dir
+    </sql>
+
+    <select id="selectLessonPage" resultMap="lessonDetailMap">
+        SELECT
+            <include refid="lessonDetailCols"/>
+        FROM lesson l
+        INNER JOIN class_room cr ON cr.id = l.class_id AND cr.is_deleted = 0
+        INNER JOIN sys_user u ON u.id = l.teacher_id
+        LEFT JOIN course_material m ON m.id = l.material_id AND m.is_deleted = 0
+        WHERE l.is_deleted = 0
+          AND l.class_id = #{classId}
+        <if test="status != null">
+            AND l.status = #{status}
+        </if>
+        ORDER BY l.start_time DESC, l.created_at DESC
+    </select>
+
+    <select id="selectLessonDetail" resultMap="lessonDetailMap">
+        SELECT
+            <include refid="lessonDetailCols"/>
+        FROM lesson l
+        INNER JOIN class_room cr ON cr.id = l.class_id AND cr.is_deleted = 0
+        INNER JOIN sys_user u ON u.id = l.teacher_id
+        LEFT JOIN course_material m ON m.id = l.material_id AND m.is_deleted = 0
+        WHERE l.id = #{lessonId} AND l.is_deleted = 0
+    </select>
+
+</mapper>

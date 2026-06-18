@@ -1,0 +1,211 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useStartLesson, useEndLesson, useLessonDetail, courseApi } from '@edu/api'
+import type { LessonStartVO } from '@edu/api'
+import { useAuthStore } from '@edu/store'
+import { isWeb } from '@edu/utils'
+
+/** 课堂页：教师开始/结束课堂 + 课件翻页推送（C5：默认 SLIDE_ONLY） */
+export default function ClassroomPage() {
+  const { classId } = useParams<{ classId: string }>()
+  const navigate = useNavigate()
+  const { roles } = useAuthStore()
+  const isTeacher = roles.includes('TEACHER')
+
+  const [lessonId, setLessonId] = useState<number | null>(null)
+  const [lessonInfo, setLessonInfo] = useState<LessonStartVO | null>(null)
+  const [currentSlide, setCurrentSlide] = useState(1)
+  const [elapsedMin, setElapsedMin] = useState(0)
+  const wsRef = useRef<WebSocket | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const { data: lesson } = useLessonDetail(lessonId)
+  const startLesson = useStartLesson()
+  const endLesson = useEndLesson()
+
+  const totalSlides = lesson?.material?.pageCount ?? 0
+  const slideBaseUrl = lesson?.material?.slideDir
+    ? `/minio/edu-slides/${lesson.material.slideDir}`
+    : null
+
+  // 课堂计时器
+  useEffect(() => {
+    if (!lessonInfo) return
+    timerRef.current = setInterval(() => setElapsedMin((m) => m + 1), 60_000)
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [lessonInfo])
+
+  // WebSocket 连接（仅 Web 端，小程序用 Taro.connectSocket）
+  const connectWs = useCallback((info: LessonStartVO) => {
+    if (!isWeb) return
+    const ws = new WebSocket(`${info.wsEndpoint}`)
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data)
+        if (msg.type === 'SLIDE_CHANGE') {
+          setCurrentSlide(msg.slideNo)
+        }
+      } catch {}
+    }
+    ws.onerror = () => console.warn('WebSocket 连接失败，将在重试')
+    wsRef.current = ws
+  }, [])
+
+  const disconnectWs = useCallback(() => {
+    if (isWeb && wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+  }, [])
+
+  const handleStart = async () => {
+    if (!classId) return
+    const result = await startLesson.mutateAsync({
+      classId: Number(classId),
+      liveMode: 'SLIDE_ONLY',
+    })
+    setLessonId(result.lessonId)
+    setLessonInfo(result)
+    setCurrentSlide(1)
+    connectWs(result)
+  }
+
+  const handleEnd = async () => {
+    if (!lessonId) return
+    await endLesson.mutateAsync(lessonId)
+    disconnectWs()
+    if (timerRef.current) clearInterval(timerRef.current)
+    setLessonId(null)
+    setLessonInfo(null)
+    setCurrentSlide(1)
+    setElapsedMin(0)
+  }
+
+  const handleSlideChange = async (newSlide: number) => {
+    if (!lessonId || newSlide < 1 || newSlide > totalSlides) return
+    setCurrentSlide(newSlide)
+    // 推送翻页通知（WebSocket / REST fallback）
+    try {
+      await courseApi.updateSlide(lessonId, newSlide)
+    } catch {}
+    if (isWeb && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'SLIDE_CHANGE', slideNo: newSlide }))
+    }
+  }
+
+  const isActive = !!lessonInfo
+
+  return (
+    <div className="flex h-screen flex-col bg-gray-900">
+      {/* 顶部工具栏 */}
+      <header className="flex h-14 shrink-0 items-center justify-between bg-gray-800 px-4 md:px-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="rounded p-1 text-gray-400 hover:text-white"
+          >
+            ←
+          </button>
+          <span className="text-sm font-medium text-white">
+            {isActive ? `课堂进行中 · ${elapsedMin} 分钟` : '待开课'}
+          </span>
+          {isActive && (
+            <span className="flex h-2 w-2 animate-pulse rounded-full bg-red-500" />
+          )}
+        </div>
+
+        {isTeacher && (
+          <div className="flex items-center gap-2">
+            {!isActive ? (
+              <button
+                onClick={handleStart}
+                disabled={startLesson.isPending}
+                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {startLesson.isPending ? '开课中…' : '开始上课'}
+              </button>
+            ) : (
+              <button
+                onClick={handleEnd}
+                disabled={endLesson.isPending}
+                className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {endLesson.isPending ? '结课中…' : '结束上课'}
+              </button>
+            )}
+          </div>
+        )}
+      </header>
+
+      {/* 主内容区：课件展示 */}
+      <main className="flex flex-1 overflow-hidden">
+        {/* 课件区 */}
+        <div className="flex flex-1 flex-col items-center justify-center">
+          {slideBaseUrl && totalSlides > 0 ? (
+            <img
+              src={`${slideBaseUrl}slide_${String(currentSlide).padStart(4, '0')}.png`}
+              alt={`第 ${currentSlide} 页`}
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-gray-500">
+              <svg className="h-16 w-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-sm">{isActive ? '暂无课件，可直接讲授' : '开始上课后显示课件'}</p>
+            </div>
+          )}
+        </div>
+
+        {/* 右侧信息面板（md+ 显示） */}
+        <aside className="hidden md:flex md:w-56 md:flex-col border-l border-gray-700 bg-gray-800 lg:w-64">
+          <div className="p-4">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-gray-400">课堂信息</h2>
+            <div className="mt-3 space-y-2 text-sm text-gray-300">
+              <InfoRow label="状态" value={isActive ? '进行中' : '未开始'} />
+              <InfoRow label="模式" value={lessonInfo?.liveMode ?? 'SLIDE_ONLY'} />
+              {totalSlides > 0 && (
+                <InfoRow label="课件" value={`${currentSlide} / ${totalSlides} 页`} />
+              )}
+              <InfoRow label="时长" value={`${elapsedMin} 分钟`} />
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      {/* 底部翻页控制 */}
+      {isActive && totalSlides > 0 && (
+        <nav className="flex h-14 shrink-0 items-center justify-center gap-4 bg-gray-800 border-t border-gray-700">
+          <button
+            onClick={() => handleSlideChange(currentSlide - 1)}
+            disabled={currentSlide <= 1}
+            className="rounded-lg px-5 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 disabled:opacity-40"
+          >
+            ← 上一页
+          </button>
+          <span className="text-sm text-gray-400">
+            {currentSlide} / {totalSlides}
+          </span>
+          <button
+            onClick={() => handleSlideChange(currentSlide + 1)}
+            disabled={currentSlide >= totalSlides}
+            className="rounded-lg px-5 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 disabled:opacity-40"
+          >
+            下一页 →
+          </button>
+        </nav>
+      )}
+    </div>
+  )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-gray-500">{label}</span>
+      <span>{value}</span>
+    </div>
+  )
+}

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.smu.edu.course.repository.ClassRoomMapper">
+
+    <!-- 教师：查询自己主讲的班级；学生：查询已加入的班级（userType=1-学生 2-教师） -->
+    <select id="selectMyClasses"
+            resultType="cn.smu.edu.course.domain.vo.ClassRoomVO">
+        SELECT
+            cr.id,
+            c.course_name,
+            c.course_code,
+            cr.class_name,
+            cr.class_code,
+            u.real_name AS teacher_name,
+            cr.student_count,
+            cr.semester,
+            cr.status,
+            d.dept_name
+        FROM class_room cr
+        INNER JOIN course c ON c.id = cr.course_id AND c.is_deleted = 0
+        INNER JOIN sys_user u ON u.id = cr.teacher_id
+        LEFT JOIN sys_dept d ON d.id = cr.dept_id
+        <if test="userType == 1">
+            INNER JOIN class_student cs ON cs.class_id = cr.id
+                AND cs.student_id = #{userId} AND cs.status = 1
+        </if>
+        WHERE cr.is_deleted = 0
+        <if test="userType == 2">
+            AND cr.teacher_id = #{userId}
+        </if>
+        <if test="semester != null and semester != ''">
+            AND cr.semester = #{semester}
+        </if>
+        <if test="status != null">
+            AND cr.status = #{status}
+        </if>
+        ORDER BY cr.semester DESC, cr.created_at DESC
+    </select>
+
+    <resultMap id="classDetailMap"
+               type="cn.smu.edu.course.domain.vo.ClassRoomDetailVO">
+        <id     property="id"           column="id"/>
+        <result property="courseName"   column="course_name"/>
+        <result property="className"    column="class_name"/>
+        <result property="studentCount" column="student_count"/>
+        <result property="semester"     column="semester"/>
+        <result property="status"       column="status"/>
+        <association property="teacher"
+                     javaType="cn.smu.edu.course.domain.vo.ClassRoomDetailVO$TeacherVO">
+            <id     property="id"        column="teacher_id"/>
+            <result property="realName"  column="teacher_name"/>
+            <result property="avatarUrl" column="teacher_avatar"/>
+        </association>
+        <collection property="students"
+                    ofType="cn.smu.edu.course.domain.vo.ClassRoomDetailVO$StudentVO">
+            <id     property="id"        column="student_id"/>
+            <result property="realName"  column="student_name"/>
+            <result property="studentNo" column="student_no"/>
+            <result property="groupName" column="group_name"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectClassDetail" resultMap="classDetailMap">
+        SELECT
+            cr.id,
+            c.course_name,
+            cr.class_name,
+            cr.student_count,
+            cr.semester,
+            cr.status,
+            t.id         AS teacher_id,
+            t.real_name  AS teacher_name,
+            t.avatar_url AS teacher_avatar,
+            s.id         AS student_id,
+            s.real_name  AS student_name,
+            cs.student_no,
+            cg.group_name
+        FROM class_room cr
+        INNER JOIN course c ON c.id = cr.course_id AND c.is_deleted = 0
+        INNER JOIN sys_user t ON t.id = cr.teacher_id
+        LEFT JOIN class_student cs ON cs.class_id = cr.id AND cs.status = 1
+        LEFT JOIN sys_user s ON s.id = cs.student_id
+        LEFT JOIN class_group_student cgs ON cgs.student_id = s.id AND cgs.class_id = cr.id
+        LEFT JOIN class_group cg ON cg.id = cgs.group_id AND cg.group_type = 'CLASS'
+        WHERE cr.id = #{classId} AND cr.is_deleted = 0
+        ORDER BY cs.joined_at ASC
+    </select>
+
+</mapper>

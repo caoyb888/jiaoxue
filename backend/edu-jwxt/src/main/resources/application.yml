@@ -15,7 +15,30 @@ spring:
         server-addr: ${NACOS_ADDR:100.84.68.115:18848}
         namespace: ${NACOS_NAMESPACE:dev}
         file-extension: yaml
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:100.84.68.115}:${MYSQL_PORT:13306}/edu_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:edu_dev_2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:100.84.68.115}
+      port: ${REDIS_PORT:16379}
+      database: 7
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
 logging:
   level:
     cn.smu.edu: INFO
+    cn.smu.edu.jwxt.repository: DEBUG

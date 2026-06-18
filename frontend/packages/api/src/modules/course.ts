@@ -1,0 +1,200 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { http } from '../client'
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface CourseListItemVO {
+  id: number
+  courseCode: string
+  courseName: string
+  credit: number
+  courseType: string
+  semester: string
+  deptName: string
+  classCount: number
+  createdAt: string
+}
+
+export interface ClassRoomVO {
+  id: number
+  classCode: string
+  className: string
+  teacherId: number
+  teacherName: string
+  courseId: number
+  courseName: string
+  semester: string
+  studentCount: number
+  status: number
+}
+
+export interface LessonDetailVO {
+  id: number
+  classId: number
+  title: string
+  chapter: string
+  status: number
+  liveMode: string
+  startTime: string | null
+  endTime: string | null
+  durationMin: number
+  currentSlide: number
+  materialId: number | null
+  material: MaterialVO | null
+}
+
+export interface MaterialVO {
+  id: number
+  title: string
+  fileType: string
+  pageCount: number
+  slideDir: string
+  status: number
+}
+
+export interface LessonStartDTO {
+  classId: number
+  materialId?: number
+  title?: string
+  chapter?: string
+  liveMode?: string
+}
+
+export interface LessonStartVO {
+  lessonId: number
+  status: number
+  liveMode: string
+  wsEndpoint: string
+  wsTopicPrefix: string
+}
+
+export interface LessonEndVO {
+  lessonId: number
+  status: number
+  durationMin: number
+  aiTaskTriggered: boolean
+  message: string
+}
+
+export interface MaterialUploadVO {
+  uploadId: string
+  presignedUrl: string
+  expiresIn: number
+  objectPath: string
+}
+
+export interface MaterialCompleteVO {
+  materialId: number
+  status: number
+  message: string
+}
+
+export interface MaterialListItemVO {
+  id: number
+  title: string
+  fileType: string
+  pageCount: number
+  status: number
+  fileSizeKb: number
+  createdAt: string
+}
+
+export interface CourseQueryParams {
+  semester?: string
+  deptId?: number
+  keyword?: string
+  page?: number
+  size?: number
+}
+
+export interface ApiPageResult<T> {
+  list: T[]
+  total: number
+  page: number
+  size: number
+  pages: number
+}
+
+// ─── API functions ────────────────────────────────────────────────────────────
+
+export const courseApi = {
+  list: (params: CourseQueryParams) =>
+    http.get<CourseQueryParams, { data: ApiPageResult<CourseListItemVO> }>('/v1/course/list', { params }),
+
+  myClasses: (params?: { semester?: string; status?: number }) =>
+    http.get<typeof params, { data: ClassRoomVO[] }>('/v1/course/class/my', { params }),
+
+  startLesson: (dto: LessonStartDTO) =>
+    http.post<LessonStartDTO, { data: LessonStartVO }>('/v1/course/lesson/start', dto),
+
+  endLesson: (lessonId: number) =>
+    http.post<void, { data: LessonEndVO }>(`/v1/course/lesson/${lessonId}/end`),
+
+  getLessonDetail: (lessonId: number) =>
+    http.get<void, { data: LessonDetailVO }>(`/v1/course/lesson/${lessonId}`),
+
+  updateSlide: (lessonId: number, slideNo: number) =>
+    http.post<{ slideNo: number }, { data: void }>(`/v1/course/lesson/${lessonId}/slide`, { slideNo }),
+}
+
+export const materialApi = {
+  applyUpload: (dto: { fileName: string; fileType: string; fileSizeKb: number }) =>
+    http.post<typeof dto, { data: MaterialUploadVO }>('/v1/course/material/upload', dto),
+
+  completeUpload: (dto: { uploadId: string; title: string }) =>
+    http.post<typeof dto, { data: MaterialCompleteVO }>('/v1/course/material/upload/complete', dto),
+
+  list: (params?: { keyword?: string; page?: number; size?: number }) =>
+    http.get<typeof params, { data: ApiPageResult<MaterialListItemVO> }>('/v1/course/material/list', { params }),
+}
+
+// ─── React Query hooks ────────────────────────────────────────────────────────
+
+export function useCourseList(params: CourseQueryParams) {
+  return useQuery({
+    queryKey: ['courses', params],
+    queryFn: () => courseApi.list(params).then((r) => r.data),
+    staleTime: 30_000,
+  })
+}
+
+export function useMyClasses(params?: { semester?: string; status?: number }) {
+  return useQuery({
+    queryKey: ['myClasses', params],
+    queryFn: () => courseApi.myClasses(params).then((r) => r.data),
+    staleTime: 60_000,
+  })
+}
+
+export function useLessonDetail(lessonId: number | null) {
+  return useQuery({
+    queryKey: ['lesson', lessonId],
+    queryFn: () => courseApi.getLessonDetail(lessonId!).then((r) => r.data),
+    enabled: lessonId !== null,
+    staleTime: 5_000,
+  })
+}
+
+export function useStartLesson() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: LessonStartDTO) => courseApi.startLesson(dto).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['myClasses'] }),
+  })
+}
+
+export function useEndLesson() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (lessonId: number) => courseApi.endLesson(lessonId).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['myClasses'] }),
+  })
+}
+
+export function useMaterialList(params?: { keyword?: string; page?: number }) {
+  return useQuery({
+    queryKey: ['materials', params],
+    queryFn: () => materialApi.list(params).then((r) => r.data),
+    staleTime: 30_000,
+  })
+}

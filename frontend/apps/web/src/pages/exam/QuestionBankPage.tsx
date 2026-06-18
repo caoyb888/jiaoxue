@@ -9,12 +9,14 @@ import {
 import type { QuestionBankVO, QuestionVO, QuestionCreateDTO } from '@edu/api'
 import { QUESTION_TYPES } from '@edu/api'
 import { QuestionForm } from './components/QuestionForm'
+import { DocxImportPanel } from './components/DocxImportPanel'
 
 export default function QuestionBankPage() {
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null)
   const [keyword, setKeyword] = useState('')
   const [showCreateBank, setShowCreateBank] = useState(false)
   const [showCreateQuestion, setShowCreateQuestion] = useState(false)
+  const [showDocxImport, setShowDocxImport] = useState(false)
   const [bankFormName, setBankFormName] = useState('')
 
   const { data: banks = [], isLoading: banksLoading } = useQuestionBanks()
@@ -118,6 +120,12 @@ export default function QuestionBankPage() {
                 className="w-48 rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
               <button
+                onClick={() => setShowDocxImport(true)}
+                className="rounded-lg border border-blue-300 px-4 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
+              >
+                批量导入
+              </button>
+              <button
                 onClick={() => setShowCreateQuestion(true)}
                 className="rounded-lg bg-blue-500 px-4 py-1.5 text-sm text-white hover:bg-blue-600"
               >
@@ -208,6 +216,17 @@ export default function QuestionBankPage() {
             onSubmit={handleCreateQuestion}
             onCancel={() => setShowCreateQuestion(false)}
             isSubmitting={createQuestion.isPending}
+          />
+        </Modal>
+      )}
+
+      {/* ── 批量导入对话框 ── */}
+      {showDocxImport && selectedBankId && selectedBank && (
+        <Modal title="批量导入题目（docx）" onClose={() => setShowDocxImport(false)} wide>
+          <DocxImportPanel
+            bankId={selectedBankId}
+            bankName={selectedBank.bankName}
+            onClose={() => setShowDocxImport(false)}
           />
         </Modal>
       )}

@@ -4,7 +4,6 @@ import cn.smu.edu.common.result.ErrorCode;
 import cn.smu.edu.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -37,12 +36,6 @@ public class GlobalExceptionHandler {
         }
         log.warn("参数校验失败: {}", msg);
         return Result.fail(ErrorCode.PARAM_ERROR.getCode(), msg);
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public Result<Void> handleAccessDeniedException(AccessDeniedException e) {
-        return Result.fail(ErrorCode.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,0 +1,70 @@
+{
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 1,
+    "analysis": {
+      "analyzer": {
+        "ik_smart_analyzer": {
+          "type": "custom",
+          "tokenizer": "ik_smart"
+        },
+        "ik_max_word_analyzer": {
+          "type": "custom",
+          "tokenizer": "ik_max_word"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "title": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "extractedText": {
+        "type": "text",
+        "analyzer": "ik_max_word",
+        "search_analyzer": "ik_smart"
+      },
+      "fileType": {
+        "type": "keyword"
+      },
+      "fileName": {
+        "type": "keyword"
+      },
+      "courseId": {
+        "type": "long"
+      },
+      "courseName": {
+        "type": "keyword"
+      },
+      "uploaderId": {
+        "type": "long"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "slideCount": {
+        "type": "integer"
+      },
+      "createdAt": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss||epoch_millis"
+      }
+    }
+  }
+}

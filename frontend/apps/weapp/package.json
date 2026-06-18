@@ -1,0 +1,29 @@
+{
+  "name": "weapp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:weapp": "taro build --type weapp --watch",
+    "build:weapp": "taro build --type weapp",
+    "dev:h5": "taro build --type h5 --watch",
+    "build:h5": "taro build --type h5"
+  },
+  "dependencies": {
+    "@edu/api": "workspace:*",
+    "@edu/store": "workspace:*",
+    "@edu/utils": "workspace:*",
+    "@tarojs/components": "^3.6.34",
+    "@tarojs/runtime": "^3.6.34",
+    "@tarojs/taro": "^3.6.34",
+    "@tanstack/react-query": "^5.45.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tarojs/cli": "^3.6.34",
+    "@tarojs/plugin-framework-react": "^3.6.34",
+    "@types/react": "^18.3.3",
+    "typescript": "^5.5.3"
+  }
+}
