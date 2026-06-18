@@ -30,4 +30,9 @@ public interface ExamMonitorMapper extends BaseMapper<ExamMonitor> {
     @Select("SELECT session_status, COUNT(*) AS cnt FROM exam_monitor " +
             "WHERE publish_id = #{publishId} GROUP BY session_status")
     List<Map<String, Object>> countByStatus(@Param("publishId") Long publishId);
+
+    /** 心跳超时检测：last_heartbeat_at 超过 seconds 秒未更新的 ANSWERING/VERIFYING 记录 */
+    @Select("SELECT * FROM exam_monitor WHERE session_status IN ('ANSWERING', 'VERIFYING') " +
+            "AND last_heartbeat_at < DATE_SUB(NOW(), INTERVAL #{seconds} SECOND)")
+    List<ExamMonitor> selectStaleHeartbeats(@Param("seconds") int seconds);
 }
