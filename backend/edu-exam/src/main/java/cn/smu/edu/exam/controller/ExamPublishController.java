@@ -7,10 +7,13 @@ import cn.smu.edu.common.util.UserContext;
 import cn.smu.edu.exam.domain.dto.*;
 import cn.smu.edu.exam.domain.vo.ExamPublishStudentVO;
 import cn.smu.edu.exam.domain.vo.ExamPublishVO;
+import cn.smu.edu.exam.domain.vo.StudentExamListVO;
 import cn.smu.edu.exam.service.ExamPublishService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/exam/publishes")
@@ -69,5 +72,14 @@ public class ExamPublishController {
             @PathVariable Long publishId,
             @Valid @RequestBody VerifyPasswordDTO dto) {
         return Result.ok(examPublishService.verifyPassword(publishId, dto.getPassword()));
+    }
+
+    /**
+     * 学生端：查询班级的考试列表（含是否已进入/已交卷）。
+     * 仅返回摘要信息，不含题目内容。
+     */
+    @GetMapping("/student/list")
+    public Result<List<StudentExamListVO>> listForStudent(@RequestParam Long classId) {
+        return Result.ok(examPublishService.listForStudent(classId, UserContext.getUserId()));
     }
 }
