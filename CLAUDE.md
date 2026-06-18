@@ -140,6 +140,22 @@ smart-edu-platform/
 > edu 项目所有中间件端口在原端口前加 `1` 前缀（如 `13306`、`16379`），避免与宿主机已有服务冲突。  
 > 微服务端口 8081–8093 不冲突，保持原编号。
 
+**代码同步到内网机（Git）：**
+
+> 本机为代码仓库主体，内网机通过 `git push` 自动同步工作目录（`receive.denyCurrentBranch = updateInstead`）。
+
+```bash
+# 首次建立同步关系（已完成，无需重复执行）
+# git remote add onlyserver onlyserver:~/smart-edu
+# ssh onlyserver 'cd ~/smart-edu && git init && git config receive.denyCurrentBranch updateInstead && git checkout feature/sprint5'
+
+# 日常同步：commit 后推送到内网机（内网机工作目录自动更新，无需登录）
+git push onlyserver feature/sprint5
+
+# 同时推送多个分支（main + 当前功能分支）
+git push onlyserver main feature/sprint5
+```
+
 **部署到内网机常用命令：**
 
 ```bash
