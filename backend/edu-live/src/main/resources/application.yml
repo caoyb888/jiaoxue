@@ -6,8 +6,6 @@ spring:
     name: edu-live
   profiles:
     active: dev
-  config:
-    import: "optional:nacos:"
   cloud:
     nacos:
       discovery:
