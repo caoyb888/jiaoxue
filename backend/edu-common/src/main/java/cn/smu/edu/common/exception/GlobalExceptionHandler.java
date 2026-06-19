@@ -3,6 +3,7 @@ package cn.smu.edu.common.exception;
 import cn.smu.edu.common.result.ErrorCode;
 import cn.smu.edu.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BizException.class)

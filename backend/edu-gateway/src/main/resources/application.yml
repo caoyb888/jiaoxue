@@ -28,7 +28,7 @@ spring:
         - id: edu-user
           uri: lb://edu-user
           predicates:
-            - Path=/api/v1/user/**,/api/v1/dept/**,/api/v1/role/**
+            - Path=/api/v1/users/**,/api/v1/depts/**,/api/v1/roles/**
         - id: edu-course
           uri: lb://edu-course
           predicates:

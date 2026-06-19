@@ -3,6 +3,7 @@ package cn.smu.edu.common.config;
 import cn.smu.edu.common.util.UserContext;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,6 +15,7 @@ import java.io.IOException;
  */
 @Component
 @Order(1)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class UserContextFilter implements Filter {
 
     @Override
