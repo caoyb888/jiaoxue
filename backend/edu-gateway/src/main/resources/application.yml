@@ -77,7 +77,16 @@ spring:
 
 edu:
   jwt:
-    public-key: ${JWT_PUBLIC_KEY:classpath:jwt/public.pem}
+    public-key: |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArADz/zYkygBXxCihoPju
+      03wpRK/QhnQQvLxmYeuz8RKR1cMyIYQSem+ms8riMyc+lmJ9M82ps+6PSz+7A11P
+      Zv904ZAPeqW1V0bA/tobPE509DCcmDSIvjfS84LQmLVXXCkn9O3Ctyd1dFRVhM5K
+      XKWT4I7OtqQSfC4gkatX0Z+MIKiq81Oa3n+tW7TiunfF1vRrQg0QhDoQ2PwAvai0
+      5GpHtQ0VeHVZF06G8zCcEqnXLG8NpFYkHENXJ+CHgi+E4oSXXYQkPjg7azwZc8JB
+      BdF9cPgwt6cnBRChRWWSdRebyyIhlVnTKpVVzSVxIl2aMRFuCpB2ISfLJ+WqV1mr
+      5QIDAQAB
+      -----END PUBLIC KEY-----
 
 logging:
   level:
