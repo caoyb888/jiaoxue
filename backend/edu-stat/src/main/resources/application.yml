@@ -6,6 +6,8 @@ spring:
     name: edu-stat
   profiles:
     active: dev
+  config:
+    import: "optional:nacos:"
   cloud:
     nacos:
       discovery:

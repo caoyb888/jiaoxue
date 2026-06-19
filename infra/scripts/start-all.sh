@@ -254,7 +254,7 @@ start_service() {
   nohup java \
     -Xms256m -Xmx512m \
     -Dspring.profiles.active=dev \
-    -Dnacos.addr=100.84.68.115:18848 \
+    -Dspring.cloud.nacos.config.import-check.enabled=false \
     -jar "$jar" \
     > "$log_file" 2>&1 &
 
