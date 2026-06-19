@@ -91,11 +91,6 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Security config（仅用于 @PreAuthorize 注解编译；运行时鉴权由网关统一处理） -->
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-config</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

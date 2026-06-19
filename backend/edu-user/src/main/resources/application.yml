@@ -26,10 +26,6 @@ spring:
       connection-timeout: 30000
   flyway:
     enabled: false
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   data:
     redis:
       host: ${REDIS_HOST:100.84.68.115}
