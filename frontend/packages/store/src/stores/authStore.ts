@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 
-// Token 只存内存，不写 localStorage（安全规范 S1-12）
-// refreshToken 存 sessionStorage（关闭 Tab 即失效，防 XSS 泄露）
+// accessToken 写 sessionStorage 以支持 SPA 页面刷新恢复（关 Tab 即失效）
+// refreshToken 同样存 sessionStorage（不写 localStorage，关 Tab 失效）
+const _storedAt = typeof window !== 'undefined' ? sessionStorage.getItem('edu_at') : null
+
 interface AuthState {
   accessToken: string | null
   userId: number | null
@@ -16,7 +18,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
-  accessToken: null,
+  accessToken: _storedAt,
   userId: null,
   username: null,
   realName: null,
@@ -24,7 +26,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   setTokens: (access, refresh) => {
     set({ accessToken: access })
-    // refreshToken 写 sessionStorage（不写 localStorage，关 Tab 失效）
+    sessionStorage.setItem('edu_at', access)
     sessionStorage.setItem('edu_rt', refresh)
   },
 
@@ -32,6 +34,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ userId, username, realName, roles }),
 
   logout: () => {
+    sessionStorage.removeItem('edu_at')
     sessionStorage.removeItem('edu_rt')
     set({ accessToken: null, userId: null, username: null, realName: null, roles: [] })
   },

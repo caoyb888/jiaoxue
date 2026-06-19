@@ -1,4 +1,4 @@
-import { apiClient } from '../client'
+import { http as apiClient } from '../client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
