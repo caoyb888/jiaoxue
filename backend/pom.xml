@@ -98,10 +98,10 @@
                 <artifactId>edu-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!-- MyBatis-Plus -->
+            <!-- MyBatis-Plus (Spring Boot 3 / Spring Framework 6 compatible) -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
