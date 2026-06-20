@@ -8,6 +8,7 @@ const UserManagePage = lazy(() => import('../pages/admin/users/UserManagePage'))
 const CourseListPage = lazy(() => import('../pages/course/CourseListPage'))
 const ClassroomPage = lazy(() => import('../pages/course/ClassroomPage'))
 const MaterialManagePage = lazy(() => import('../pages/course/MaterialManagePage'))
+const InteractionEntryPage = lazy(() => import('../pages/interaction/InteractionEntryPage'))
 const AttendancePage = lazy(() => import('../pages/interaction/AttendancePage'))
 const StudentAttendPage = lazy(() => import('../pages/interaction/StudentAttendPage'))
 const BarragePage = lazy(() => import('../pages/interaction/BarragePage'))
@@ -47,6 +48,7 @@ export function AppRouter() {
           <Route path="/course/:classId/classroom" element={<RequireAuth><ClassroomPage /></RequireAuth>} />
           <Route path="/materials" element={<RequireAuth><MaterialManagePage /></RequireAuth>} />
           {/* Sprint 3 互动教学路由 */}
+          <Route path="/interaction" element={<RequireAuth><InteractionEntryPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/attendance" element={<RequireAuth><AttendancePage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/attend" element={<RequireAuth><StudentAttendPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/barrage" element={<RequireAuth><BarragePage /></RequireAuth>} />

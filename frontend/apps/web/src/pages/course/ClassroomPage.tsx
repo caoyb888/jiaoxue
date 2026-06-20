@@ -10,7 +10,7 @@ export default function ClassroomPage() {
   const { classId } = useParams<{ classId: string }>()
   const navigate = useNavigate()
   const { roles } = useAuthStore()
-  const isTeacher = roles.includes('TEACHER')
+  const isTeacher = roles.includes('ROLE_TEACHER') || roles.includes('ROLE_ADMIN')
 
   const [lessonId, setLessonId] = useState<number | null>(null)
   const [lessonInfo, setLessonInfo] = useState<LessonStartVO | null>(null)
@@ -138,6 +138,28 @@ export default function ClassroomPage() {
           </div>
         )}
       </header>
+
+      {/* 课堂互动工具栏（开课后显示；新标签打开以保留课堂直播状态） */}
+      {isActive && isTeacher && lessonId && (
+        <div className="flex h-11 shrink-0 items-center gap-2 border-t border-gray-700 bg-gray-800 px-4 md:px-6">
+          <span className="text-xs text-gray-400">课堂互动：</span>
+          {[
+            { label: '签到', path: 'attendance' },
+            { label: '随机点名', path: 'roll-call' },
+            { label: '弹幕', path: 'barrage' },
+          ].map((tool) => (
+            <a
+              key={tool.path}
+              href={`/lesson/${lessonId}/${tool.path}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md bg-gray-700 px-3 py-1 text-xs font-medium text-gray-200 hover:bg-gray-600"
+            >
+              {tool.label}
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* 主内容区：课件展示 */}
       <main className="flex flex-1 overflow-hidden">

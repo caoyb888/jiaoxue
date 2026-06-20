@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     label: '互动教学',
-    href: '/courses',
+    href: '/interaction',
     icon: '🎯',
     description: '课堂签到、随机点名、弹幕互动',
     roles: ['ROLE_ADMIN', 'ROLE_TEACHER', 'ROLE_STUDENT'],
@@ -190,7 +190,7 @@ export default function DashboardPage() {
               <h2 className="mb-4 text-sm font-medium text-gray-500 uppercase tracking-wide">快速操作</h2>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  to="/courses"
+                  to="/interaction"
                   className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                 >
                   进入课堂
