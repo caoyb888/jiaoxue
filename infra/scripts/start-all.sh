@@ -313,7 +313,7 @@ if [ "$SKIP_SEED" = false ] && [ "$FRONTEND_ONLY" = false ]; then
   step "7. 注入测试数据"
   SEED_SQL="$PROJ_DIR/docs/db/seed_full.sql"
   if [ -f "$SEED_SQL" ]; then
-    docker exec -i edu-mysql mysql -u root -pedu_dev_2026 edu_db < "$SEED_SQL" 2>/dev/null \
+    docker exec -i edu-mysql mysql -u root -pedu_dev_2026 --default-character-set=utf8mb4 edu_db < "$SEED_SQL" 2>/dev/null \
       && info "测试数据注入成功 ✓" \
       || warn "测试数据注入出现警告（可能是重复数据，可忽略）"
   fi

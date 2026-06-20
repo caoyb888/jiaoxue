@@ -1,9 +1,12 @@
 -- ============================================================
 -- 智慧教学系统 · 完整开发测试数据
--- 执行方式：docker exec edu-mysql mysql -u root -pedu_dev_2026 edu_db < seed_full.sql
+-- 执行方式：docker exec -i edu-mysql mysql -u root -pedu_dev_2026 --default-character-set=utf8mb4 edu_db < seed_full.sql
 -- 登录方式：调用 POST /api/v1/auth/sms/send?phone=13800000001 后
 --           用 POST /api/v1/auth/login/phone 登录（验证码在 Redis 中可查）
 -- ============================================================
+
+-- 强制连接字符集为 utf8mb4，避免客户端默认 latin1 导致中文按 latin1 读入而双重编码乱码
+SET NAMES utf8mb4;
 
 USE edu_db;
 
