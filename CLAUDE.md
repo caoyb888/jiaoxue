@@ -1078,6 +1078,10 @@ sed -i 's/edu-static-v[0-9]*/edu-static-v{新版本}/' apps/web/public/service-w
 # 查看所有服务健康状态
 ./infra/scripts/health-check.sh
 
+# 重置开发测试短信验证码（dev 登录用，默认所有测试账号=123456，24h）
+# 在内网机执行；前端登录直接输入验证码、勿点“发送验证码”
+ssh onlyserver 'bash ~/smart-edu/infra/scripts/reset-sms-codes.sh'
+
 # 手动触发文件生命周期清理（测试用）
 curl -X POST "http://localhost:8160/xxl-job-admin/api/trigger" \
   -d "jobId=fileLifecycleCheck"
