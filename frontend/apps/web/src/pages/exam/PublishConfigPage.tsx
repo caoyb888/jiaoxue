@@ -19,7 +19,7 @@ export function PublishConfigPage() {
   )
   const effectiveClassId = classId ?? classes?.[0]?.id ?? null
 
-  const { data: papers } = useExamPapers(effectiveClassId ?? 0)
+  const { data: papers } = useExamPapers()
   const [paperId, setPaperId] = useState<number | null>(
     params.get('paperId') ? Number(params.get('paperId')) : null,
   )
@@ -98,8 +98,8 @@ export function PublishConfigPage() {
 
           <Field label="试卷">
             <select value={effectivePaperId ?? ''} onChange={(e) => setPaperId(Number(e.target.value))} className={selectCls}>
-              {(papers ?? []).length === 0 && <option value="">该班级暂无试卷，请先到「试卷管理」组卷</option>}
-              {papers?.map((p) => <option key={p.id} value={p.id}>{p.paperName}（{p.questionCount}题/{p.totalScore}分）</option>)}
+              {(papers ?? []).length === 0 && <option value="">暂无试卷，请先到「试卷管理」组卷</option>}
+              {papers?.map((p) => <option key={p.id} value={p.id}>{p.title}（{p.totalScore}分）</option>)}
             </select>
           </Field>
 

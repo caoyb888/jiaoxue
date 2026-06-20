@@ -8,13 +8,15 @@ import { RichTextView } from './components/RichTextEditor'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+// 对齐后端 LessonQuestionVO（GET /lessons/{id}/questions/current）：主键字段为 id
 interface ActiveQuestionVO {
-  lessonQuestionId: number
+  id: number
   lessonId: number
   questionId: number
   questionType: number
   content: string
   options: QuestionOptionVO[]
+  status: number
   openedAt: string
 }
 
@@ -32,8 +34,10 @@ interface AnswerResultVO {
 // 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据。
 const studentExamApi = {
   getActiveQuestion: (lessonId: string): Promise<ActiveQuestionVO | null> =>
-    http.get(`/v1/exam/lessons/${lessonId}/active-question`),
+    http.get(`/v1/exam/lessons/${lessonId}/questions/current`),
 
+  // ⚠ 后端暂无随堂答题提交端点（仅 S5 正式考试 /publishes/{id}/submit 存在）。
+  // 保留调用以便后端补齐该端点后即可生效；当前提交会失败（UI 停留在作答态）。
   submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<AnswerResultVO> =>
     http.post(`/v1/exam/lessons/${lessonId}/answers`, dto),
 }
@@ -61,16 +65,16 @@ export default function StudentAnswerPage() {
   const [lastQuestionId, setLastQuestionId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (activeQuestion && activeQuestion.lessonQuestionId !== lastQuestionId) {
+    if (activeQuestion && activeQuestion.id !== lastQuestionId) {
       setResult(null)
-      setLastQuestionId(activeQuestion.lessonQuestionId)
+      setLastQuestionId(activeQuestion.id)
     }
   }, [activeQuestion, lastQuestionId])
 
   function handleSubmit(answer: string) {
     if (!activeQuestion) return
     submitAnswer.mutate(
-      { lessonQuestionId: activeQuestion.lessonQuestionId, answer },
+      { lessonQuestionId: activeQuestion.id, answer },
       { onSuccess: (res) => setResult(res ?? null) }
     )
   }

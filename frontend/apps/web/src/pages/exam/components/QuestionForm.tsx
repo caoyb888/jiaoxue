@@ -92,7 +92,7 @@ export function QuestionForm({ bankId, onSubmit, onCancel, isSubmitting }: Props
       content: content.trim(),
       answer: answer.trim() || undefined,
       analysis: analysis.trim() || undefined,
-      score,
+      score: Number(score) || 0,
       options: hasOptions ? options : undefined,
     }
     onSubmit(dto)
