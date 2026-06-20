@@ -72,6 +72,9 @@ importers:
       '@edu/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@stomp/stompjs':
+        specifier: ^7.0.0
+        version: 7.3.0
       '@tanstack/react-query':
         specifier: ^5.45.0
         version: 5.101.0(react@18.3.1)
@@ -1413,6 +1416,9 @@ packages:
     resolution: {integrity: sha512-kmVA0M/HojwsfkeHsifvHVIYe4l5tin7J5+DLgtl8h6WWfiMClND5K3ifCXXI2ETDNKiEk21p6jql3Fx9o2rng==}
     engines: {node: '>=12.10.0', npm: '>=6.0.0'}
     hasBin: true
+
+  '@stomp/stompjs@7.3.0':
+    resolution: {integrity: sha512-nKMLoFfJhrQAqkvvKd1vLq/cVBGCMwPRCD0LqW7UT1fecRx9C3GoKEIR2CYwVuErGeZu8w0kFkl2rlhPlqHVgQ==}
 
   '@swc/core-darwin-arm64@1.3.96':
     resolution: {integrity: sha512-8hzgXYVd85hfPh6mJ9yrG26rhgzCmcLO0h1TIl8U31hwmTbfZLzRitFQ/kqMJNbIBCwmNH1RU2QcJnL3d7f69A==}
@@ -6126,6 +6132,8 @@ snapshots:
   '@sindresorhus/is@0.7.0': {}
 
   '@stencil/core@2.22.3': {}
+
+  '@stomp/stompjs@7.3.0': {}
 
   '@swc/core-darwin-arm64@1.3.96':
     optional: true

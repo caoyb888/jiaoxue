@@ -1,5 +1,7 @@
 package cn.smu.edu.interaction.service.impl;
 
+import cn.smu.edu.common.constant.KafkaTopic;
+import cn.smu.edu.common.event.TeachingEvent;
 import cn.smu.edu.interaction.domain.dto.*;
 import cn.smu.edu.interaction.domain.entity.*;
 import cn.smu.edu.interaction.domain.vo.RollCallVO;
@@ -44,13 +46,12 @@ public class InteractionServiceImpl implements InteractionService {
         barrage.setIsBlocked(0);
         barrageMapper.insert(barrage);
 
-        // Kafka 广播通知（edu-notify 消费后推 WebSocket）
-        kafkaTemplate.send("edu.teaching.events", Map.of(
-                "type", "BARRAGE",
-                "lessonId", lessonId,
+        // Kafka 广播通知（edu-notify 消费后推 STOMP /topic/lesson/{id}/barrage）
+        TeachingEvent event = new TeachingEvent("BARRAGE", lessonId, studentId, Map.of(
                 "content", dto.getContent(),
-                "style", dto.getStyle()
+                "style", dto.getStyle() == null ? "roll" : dto.getStyle()
         ));
+        kafkaTemplate.send(KafkaTopic.TEACHING_EVENTS, lessonId.toString(), event);
 
         log.info("弹幕发送: lessonId={}, studentId={}", lessonId, studentId);
     }
@@ -105,13 +106,12 @@ public class InteractionServiceImpl implements InteractionService {
         }
         randomCallMapper.insert(record);
 
-        // Kafka 广播
-        kafkaTemplate.send("edu.teaching.events", Map.of(
-                "type", "ROLL_CALL",
-                "lessonId", lessonId,
+        // Kafka 广播（edu-notify 消费后推 STOMP /topic/lesson/{id}/roll-call）
+        TeachingEvent event = new TeachingEvent("ROLL_CALL", lessonId, teacherId, Map.of(
                 "studentIds", picked,
-                "style", dto.getStyle()
+                "style", dto.getStyle() == null ? "random" : dto.getStyle()
         ));
+        kafkaTemplate.send(KafkaTopic.TEACHING_EVENTS, lessonId.toString(), event);
 
         log.info("随机点名: lessonId={}, picked={}, style={}", lessonId, picked, dto.getStyle());
 

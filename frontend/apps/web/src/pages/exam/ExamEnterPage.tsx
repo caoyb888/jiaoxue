@@ -16,16 +16,16 @@ export function ExamEnterPage() {
 
   const enterMutation = useMutation({
     mutationFn: () => examStudentApi.enterExam(Number(publishId), { password: password || undefined }),
-    onSuccess: (res) => {
-      const vo: ExamEnterVO = res.data
+    onSuccess: (vo: ExamEnterVO) => {
+      // http 拦截器已解包 Result→data，vo 即业务数据
       if (vo.sessionStatus === 'VERIFYING') {
         navigate(`/exam/${publishId}/face-verify`, { state: { enterData: vo } })
       } else {
         navigate(`/exam/${publishId}/answer`, { state: { enterData: vo } })
       }
     },
-    onError: (err: { response?: { data?: { msg?: string } } }) => {
-      setError(err.response?.data?.msg ?? '进入失败，请稍后重试')
+    onError: (err: Error) => {
+      setError(err.message || '进入失败，请稍后重试')
     },
   })
 

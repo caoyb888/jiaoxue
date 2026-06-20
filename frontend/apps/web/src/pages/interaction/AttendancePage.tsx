@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useGenerateCode, useCurrentCode, useAttendanceList, useRollCall, type RollCallVO } from '@edu/api/modules/interaction'
+import { useLessonTopic } from '../../hooks/useLessonTopic'
 
 /** 教师端签到管理页（S3-11） */
 export default function AttendancePage() {
@@ -8,9 +9,8 @@ export default function AttendancePage() {
   const id = Number(lessonId)
 
   const [countdown, setCountdown] = useState(0)
-  const [wsCount] = useState<number | null>(null)
+  const [wsCount, setWsCount] = useState<number | null>(null)
   const [rollCallResult, setRollCallResult] = useState<RollCallVO | null>(null)
-  const wsRef = useRef<WebSocket | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const generateCode = useGenerateCode(id)
@@ -18,14 +18,10 @@ export default function AttendancePage() {
   const { data: attendanceData, refetch: refetchAttendance } = useAttendanceList(id)
   const rollCall = useRollCall(id)
 
-  // WebSocket：订阅签到人数实时推送
-  useEffect(() => {
-    // 使用 SockJS + STOMP 连接（此处简化为原生 WS 演示，实际需引入 @stomp/stompjs）
-    // 真实实现：stompClient.subscribe(`/topic/lesson/${id}/attend`, ...)
-    return () => {
-      wsRef.current?.close()
-    }
-  }, [id])
+  // 订阅签到人数实时推送（edu-notify STOMP /topic/lesson/{id}/attend）
+  useLessonTopic<{ count: number }>(id, 'attend', (msg) => {
+    setWsCount(msg.count)
+  })
 
   // 倒计时
   useEffect(() => {

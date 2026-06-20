@@ -133,6 +133,117 @@ export interface PageResult<T> {
   current: number
 }
 
+// ─── Exam Publish Types (S5 发布列表) ─────────────────────────────────────────
+
+/** 教师视角发布 VO（含全部配置，不含密码明文/散列）。 */
+export interface ExamPublishVO {
+  id: number
+  paperId: number
+  classId: number
+  teacherId: number
+  startTime: string
+  endTime: string
+  durationMin: number
+  hasPassword: boolean
+  enableMonitor: number
+  faceVerifyType: number
+  answerShowAt: string | null
+  allowCopy: number
+  shuffleQuestion: number
+  shuffleOption: number
+  /** 实时状态：0-未开始 1-进行中 2-已结束 3-已取消 */
+  status: number
+  statusLabel: string
+  createdAt: string
+  updatedAt: string
+}
+
+/** 学生端考试列表 VO（不含题目内容）。 */
+export interface StudentExamListVO {
+  publishId: number
+  paperId: number
+  paperTitle: string
+  startTime: string
+  endTime: string
+  durationMin: number
+  hasPassword: boolean
+  enableMonitor: number
+  faceVerifyType: number
+  status: number
+  statusLabel: string
+  entered: boolean
+  submitted: boolean
+}
+
+export interface ExamPublishQueryParams {
+  classId?: number
+  status?: number
+  page?: number
+  size?: number
+}
+
+/** 发布考试请求（对应后端 ExamPublishCreateDTO）。 */
+export interface ExamPublishCreateDTO {
+  paperId: number
+  classId: number
+  /** ISO 本地时间，如 2026-06-20T14:00:00 */
+  startTime: string
+  endTime: string
+  durationMin: number
+  /** 明文密码，后端加密存储；空/省略=不设密码 */
+  password?: string
+  /** 0-不开启 1-开启在线监考 */
+  enableMonitor: number
+  /** 0-不核验 1-证件照 2-现场拍照 */
+  faceVerifyType: number
+  /** null/省略=发布后立即可查答案 */
+  answerShowAt?: string | null
+  /** 0-禁止复制 1-允许 */
+  allowCopy: number
+  /** 0-固定顺序 1-乱序题目 */
+  shuffleQuestion: number
+  /** 0-固定顺序 1-乱序选项 */
+  shuffleOption: number
+}
+
+/** 人脸核验结果（C6：无原始照片字段）。 */
+export interface FaceVerifyResultVO {
+  passed: boolean
+  score: number
+  sessionStatus: string
+  message: string
+}
+
+/** 单题作答与批改明细。 */
+export interface StudentAnswerVO {
+  id: number
+  publishId: number
+  questionId: number
+  studentId: number
+  answerContent: string
+  score: number | null
+  /** null=未批改 0=错误 1=正确 */
+  isCorrect: number | null
+  comment: string | null
+  /** 0-未批改 1-自动批改完成 2-教师已批改 */
+  reviewStatus: number
+  submittedAt: string
+  attachments: string[] | null
+}
+
+/** 学生本次考试得分汇总。 */
+export interface ExamScoreSummaryVO {
+  publishId: number
+  studentId: number
+  /** 已批改题目得分总和（未批改题不计入） */
+  totalScore: number | null
+  fullScore: number | null
+  totalQuestions: number
+  gradedQuestions: number
+  correctCount: number
+  answers: StudentAnswerVO[]
+}
+
 export interface ExamPaperVO {
   id: number
   classId: number
@@ -187,66 +298,91 @@ export const OPTION_TYPES = new Set([1, 2, 6])
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const examStudentApi = {
-  enterExam: (publishId: number, dto?: ExamEnterDTO): Promise<{ code: number; data: ExamEnterVO }> =>
+  // 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据（非 { code, data }）。
+  enterExam: (publishId: number, dto?: ExamEnterDTO): Promise<ExamEnterVO> =>
     http.post(`/v1/exam/publishes/${publishId}/enter`, dto ?? {}),
 
-  getQuestionsPage: (publishId: number, page: number): Promise<{ code: number; data: ExamQuestionPageVO }> =>
+  getQuestionsPage: (publishId: number, page: number): Promise<ExamQuestionPageVO> =>
     http.get(`/v1/exam/publishes/${publishId}/questions`, { params: { page } }),
 
-  submitExam: (publishId: number, dto: SubmitAnswerDTO): Promise<{ code: number; data: SubmitResultVO }> =>
+  submitExam: (publishId: number, dto: SubmitAnswerDTO): Promise<SubmitResultVO> =>
     http.post(`/v1/exam/publishes/${publishId}/submit`, dto),
 
-  heartbeat: (publishId: number): Promise<{ code: number; data: HeartbeatVO }> =>
+  heartbeat: (publishId: number): Promise<HeartbeatVO> =>
     http.put(`/v1/exam/publishes/${publishId}/heartbeat`),
 
-  reportMonitorEvent: (publishId: number, eventType: string, detail?: string): Promise<{ code: number }> =>
+  reportMonitorEvent: (publishId: number, eventType: string, detail?: string): Promise<void> =>
     http.post(`/v1/exam/publishes/${publishId}/monitor/event`, { eventType, detail }),
 
-  faceVerify: (publishId: number, livePhotoBase64: string): Promise<{ code: number; data: { passed: boolean; score: number; sessionStatus: string } }> =>
+  faceVerify: (publishId: number, livePhotoBase64: string): Promise<FaceVerifyResultVO> =>
     http.post(`/v1/exam/publishes/${publishId}/face-verify`, { livePhotoBase64 }),
+
+  /** 学生查询自己本次考试的成绩汇总（含逐题批改明细）。 */
+  myScore: (publishId: number): Promise<ExamScoreSummaryVO> =>
+    http.get(`/v1/exam/publishes/${publishId}/my-score`),
 }
 
+/** S5 考试发布 API（教师/学生双视角）。返回值均为已解包业务数据。 */
+export const examPublishApi = {
+  /** 教师：发布考试。 */
+  publish: (dto: ExamPublishCreateDTO): Promise<ExamPublishVO> =>
+    http.post('/v1/exam/publishes', dto),
+
+  /** 教师：分页查询自己发布的考试。 */
+  listByTeacher: (params?: ExamPublishQueryParams): Promise<PageResult<ExamPublishVO>> =>
+    http.get('/v1/exam/publishes', { params }),
+
+  /** 通用：按 id 取发布详情。 */
+  getById: (publishId: number): Promise<ExamPublishVO> =>
+    http.get(`/v1/exam/publishes/${publishId}`),
+
+  /** 学生：查询某班级的考试列表（含是否已进入/已交卷）。 */
+  listForStudent: (classId: number): Promise<StudentExamListVO[]> =>
+    http.get('/v1/exam/publishes/student/list', { params: { classId } }),
+}
+
+// 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据（对齐 examStudentApi/examPublishApi）。
 export const examApi = {
-  listBanks: (): Promise<{ code: number; data: QuestionBankVO[] }> =>
+  listBanks: (): Promise<QuestionBankVO[]> =>
     http.get('/v1/exam/banks'),
 
-  createBank: (dto: QuestionBankCreateDTO): Promise<{ code: number; data: QuestionBankVO }> =>
+  createBank: (dto: QuestionBankCreateDTO): Promise<QuestionBankVO> =>
     http.post('/v1/exam/banks', dto),
 
-  deleteBank: (bankId: number): Promise<{ code: number }> =>
+  deleteBank: (bankId: number): Promise<void> =>
     http.delete(`/v1/exam/banks/${bankId}`),
 
-  listQuestions: (bankId: number, params?: { page?: number; size?: number; keyword?: string }): Promise<{ code: number; data: PageResult<QuestionVO> }> =>
+  listQuestions: (bankId: number, params?: { page?: number; size?: number; keyword?: string }): Promise<PageResult<QuestionVO>> =>
     http.get(`/v1/exam/banks/${bankId}/questions`, { params: { page: 1, size: 20, ...params } }),
 
-  createQuestion: (dto: QuestionCreateDTO): Promise<{ code: number; data: QuestionVO }> =>
+  createQuestion: (dto: QuestionCreateDTO): Promise<QuestionVO> =>
     http.post('/v1/exam/questions', dto),
 
-  deleteQuestion: (questionId: number): Promise<{ code: number }> =>
+  deleteQuestion: (questionId: number): Promise<void> =>
     http.delete(`/v1/exam/questions/${questionId}`),
 
-  listPapers: (classId: number): Promise<{ code: number; data: ExamPaperVO[] }> =>
+  listPapers: (classId: number): Promise<ExamPaperVO[]> =>
     http.get('/v1/exam/papers', { params: { classId } }),
 
-  createPaper: (dto: ExamPaperCreateDTO): Promise<{ code: number; data: ExamPaperVO }> =>
+  createPaper: (dto: ExamPaperCreateDTO): Promise<ExamPaperVO> =>
     http.post('/v1/exam/papers', dto),
 
-  deletePaper: (paperId: number): Promise<{ code: number }> =>
+  deletePaper: (paperId: number): Promise<void> =>
     http.delete(`/v1/exam/papers/${paperId}`),
 
-  listPaperQuestions: (paperId: number): Promise<{ code: number; data: PaperQuestionVO[] }> =>
+  listPaperQuestions: (paperId: number): Promise<PaperQuestionVO[]> =>
     http.get(`/v1/exam/papers/${paperId}/questions`),
 
-  addQuestionToPaper: (paperId: number, dto: PaperQuestionAddDTO): Promise<{ code: number; data: PaperQuestionVO }> =>
+  addQuestionToPaper: (paperId: number, dto: PaperQuestionAddDTO): Promise<PaperQuestionVO> =>
     http.post(`/v1/exam/papers/${paperId}/questions`, dto),
 
-  updatePaperQuestion: (paperId: number, pqId: number, dto: PaperQuestionUpdateDTO): Promise<{ code: number }> =>
+  updatePaperQuestion: (paperId: number, pqId: number, dto: PaperQuestionUpdateDTO): Promise<void> =>
     http.put(`/v1/exam/papers/${paperId}/questions/${pqId}`, dto),
 
-  removePaperQuestion: (paperId: number, pqId: number): Promise<{ code: number }> =>
+  removePaperQuestion: (paperId: number, pqId: number): Promise<void> =>
     http.delete(`/v1/exam/papers/${paperId}/questions/${pqId}`),
 
-  reorderPaperQuestions: (paperId: number, orderedIds: number[]): Promise<{ code: number }> =>
+  reorderPaperQuestions: (paperId: number, orderedIds: number[]): Promise<void> =>
     http.put(`/v1/exam/papers/${paperId}/questions/reorder`, { orderedIds }),
 }
 
@@ -255,7 +391,7 @@ export const examApi = {
 export function useQuestionBanks() {
   return useQuery({
     queryKey: ['exam', 'banks'],
-    queryFn: () => examApi.listBanks().then((r) => r.data ?? []),
+    queryFn: () => examApi.listBanks(),
     staleTime: 60_000,
   })
 }
@@ -263,7 +399,7 @@ export function useQuestionBanks() {
 export function useQuestions(bankId: number | null, keyword?: string) {
   return useQuery({
     queryKey: ['exam', 'questions', bankId, keyword],
-    queryFn: () => examApi.listQuestions(bankId!, { keyword }).then((r) => r.data),
+    queryFn: () => examApi.listQuestions(bankId!, { keyword }),
     enabled: !!bankId,
     staleTime: 30_000,
   })
@@ -303,7 +439,7 @@ export function useDeleteQuestion() {
 export function useExamPapers(classId: number | null) {
   return useQuery({
     queryKey: ['exam', 'papers', classId],
-    queryFn: () => examApi.listPapers(classId!).then((r) => r.data ?? []),
+    queryFn: () => examApi.listPapers(classId!),
     enabled: !!classId,
     staleTime: 30_000,
   })
@@ -312,7 +448,7 @@ export function useExamPapers(classId: number | null) {
 export function usePaperQuestions(paperId: number | null) {
   return useQuery({
     queryKey: ['exam', 'paper-questions', paperId],
-    queryFn: () => examApi.listPaperQuestions(paperId!).then((r) => r.data ?? []),
+    queryFn: () => examApi.listPaperQuestions(paperId!),
     enabled: !!paperId,
     staleTime: 15_000,
   })

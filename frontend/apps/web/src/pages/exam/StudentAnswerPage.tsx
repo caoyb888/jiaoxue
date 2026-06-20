@@ -29,11 +29,12 @@ interface AnswerResultVO {
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
+// 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据。
 const studentExamApi = {
-  getActiveQuestion: (lessonId: string): Promise<{ code: number; data: ActiveQuestionVO | null }> =>
+  getActiveQuestion: (lessonId: string): Promise<ActiveQuestionVO | null> =>
     http.get(`/v1/exam/lessons/${lessonId}/active-question`),
 
-  submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<{ code: number; data: AnswerResultVO }> =>
+  submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<AnswerResultVO> =>
     http.post(`/v1/exam/lessons/${lessonId}/answers`, dto),
 }
 
@@ -49,7 +50,7 @@ export default function StudentAnswerPage() {
     enabled: !!lessonId,
   })
 
-  const activeQuestion = activeRes?.data
+  const activeQuestion = activeRes
 
   const submitAnswer = useMutation({
     mutationFn: (dto: { lessonQuestionId: number; answer: string }) =>
@@ -70,7 +71,7 @@ export default function StudentAnswerPage() {
     if (!activeQuestion) return
     submitAnswer.mutate(
       { lessonQuestionId: activeQuestion.lessonQuestionId, answer },
-      { onSuccess: (res) => setResult(res.data ?? null) }
+      { onSuccess: (res) => setResult(res ?? null) }
     )
   }
 

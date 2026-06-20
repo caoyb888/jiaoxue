@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { http } from '@edu/api'
 
@@ -48,8 +48,8 @@ export function MonitorDashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['monitor', 'dashboard', publishId],
     queryFn: (): Promise<MonitorDashboardVO> =>
-      http.get(`/v1/exam/monitor/list`, { params: { publishId } })
-        .then((r: { data: MonitorDashboardVO }) => r.data),
+      // http 拦截器已解包 Result→data，直接返回业务数据
+      http.get(`/v1/exam/monitor/list`, { params: { publishId } }),
     enabled: !!publishId,
     refetchInterval: 10_000,
     staleTime: 9_000,
@@ -133,6 +133,16 @@ export function MonitorDashboardPage() {
                 {s.copyCount > 0 && <span className="text-red-400">复制×{s.copyCount}</span>}
                 {s.abnormalFlag === 1 && <span className="text-red-500 font-semibold">⚠ 异常</span>}
               </div>
+              {s.sessionStatus === 'SUBMITTED' ? (
+                <Link
+                  to={`/exam/${publishId}/review/${s.studentId}`}
+                  className="shrink-0 rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                >
+                  阅卷
+                </Link>
+              ) : (
+                <span className="shrink-0 px-3 py-1 text-xs text-gray-600">未交卷</span>
+              )}
             </div>
           ))}
           {filtered.length === 0 && (

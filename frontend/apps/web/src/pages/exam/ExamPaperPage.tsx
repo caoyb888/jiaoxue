@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   useQuestionBanks,
   useQuestions,
@@ -65,7 +66,7 @@ export default function ExamPaperPage() {
           setShowCreatePaper(false)
           setNewPaperName('')
           setNewPaperDesc('')
-          setSelectedPaperId(res.data?.id ?? null)
+          setSelectedPaperId(res.id ?? null)
         },
       }
     )
@@ -204,16 +205,24 @@ export default function ExamPaperPage() {
             )}
           </div>
           {selectedPaper && (
-            <button
-              onClick={() => setPreviewMode((v) => !v)}
-              className={`rounded-lg px-4 py-1.5 text-sm transition-colors ${
-                previewMode
-                  ? 'bg-gray-800 text-white'
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {previewMode ? '退出预览' : '预览试卷'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPreviewMode((v) => !v)}
+                className={`rounded-lg px-4 py-1.5 text-sm transition-colors ${
+                  previewMode
+                    ? 'bg-gray-800 text-white'
+                    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {previewMode ? '退出预览' : '预览试卷'}
+              </button>
+              <Link
+                to={`/exam/publish?paperId=${selectedPaper.id}&classId=${classId}`}
+                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                发布考试
+              </Link>
+            </div>
           )}
         </div>
 

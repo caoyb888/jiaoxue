@@ -137,7 +137,7 @@ export function ExamAnswerPage() {
               const nextPage = currentPage + 1
               setCurrentPage(nextPage)
               examStudentApi.getQuestionsPage(pid, nextPage).then((r) => {
-                setQuestions(r.data.questions)
+                setQuestions(r.questions)
               })
             }}
             disabled={currentPage >= enterData.totalPages}

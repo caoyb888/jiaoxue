@@ -22,15 +22,16 @@ interface ImportResult {
 
 // ─── API ──────────────────────────────────────────────────────────────────
 
+// 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据。
 const docxApi = {
-  preview: (bankId: number, file: File): Promise<{ code: number; data: ImportResult }> => {
+  preview: (bankId: number, file: File): Promise<ImportResult> => {
     const formData = new FormData()
     formData.append('file', file)
     return http.post(`/v1/exam/banks/${bankId}/import/preview`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  confirm: (bankId: number, file: File): Promise<{ code: number; data: { importedCount: number } }> => {
+  confirm: (bankId: number, file: File): Promise<{ importedCount: number }> => {
     const formData = new FormData()
     formData.append('file', file)
     return http.post(`/v1/exam/banks/${bankId}/import/confirm`, formData, {
@@ -61,7 +62,7 @@ export function DocxImportPanel({ bankId, bankName, onClose }: Props) {
   const previewMutation = useMutation({
     mutationFn: (file: File) => docxApi.preview(bankId, file),
     onSuccess: (res) => {
-      setPreviewResult(res.data ?? null)
+      setPreviewResult(res ?? null)
       setStep('preview')
     },
   })
@@ -69,7 +70,7 @@ export function DocxImportPanel({ bankId, bankName, onClose }: Props) {
   const confirmMutation = useMutation({
     mutationFn: (file: File) => docxApi.confirm(bankId, file),
     onSuccess: (res) => {
-      setImportedCount(res.data?.importedCount ?? 0)
+      setImportedCount(res.importedCount ?? 0)
       qc.invalidateQueries({ queryKey: ['exam', 'questions', bankId] })
       setStep('done')
     },

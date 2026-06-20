@@ -37,8 +37,8 @@ export function ReviewPage() {
   const { data: answers = [] } = useQuery({
     queryKey: ['review', 'answers', publishId, studentId],
     queryFn: (): Promise<StudentAnswerVO[]> =>
-      http.get(`/v1/exam/publishes/${publishId}/students/${studentId}/answers`)
-        .then((r: { data: StudentAnswerVO[] }) => r.data ?? []),
+      // http 拦截器已解包 Result→data
+      http.get(`/v1/exam/publishes/${publishId}/students/${studentId}/answers`),
     enabled: !!publishId && !!studentId,
     staleTime: 10_000,
   })

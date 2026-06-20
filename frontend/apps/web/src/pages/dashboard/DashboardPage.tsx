@@ -45,6 +45,14 @@ const NAV_ITEMS: NavItem[] = [
     color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
   },
   {
+    label: '在线考试',
+    href: '/exam/list',
+    icon: '🖥️',
+    description: '教师监考已发布考试，学生进入考试作答',
+    roles: ['ROLE_ADMIN', 'ROLE_TEACHER', 'ROLE_STUDENT'],
+    color: 'bg-cyan-50 border-cyan-200 hover:bg-cyan-100',
+  },
+  {
     label: '课件管理',
     href: '/materials',
     icon: '📁',

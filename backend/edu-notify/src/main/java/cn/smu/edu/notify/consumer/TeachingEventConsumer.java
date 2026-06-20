@@ -35,8 +35,35 @@ public class TeachingEventConsumer {
         switch (event.getEventType()) {
             case "QUESTION_PUBLISHED" -> handleQuestionPublished(event);
             case "QUESTION_CLOSED"    -> handleQuestionClosed(event);
+            case "BARRAGE"            -> handleBarrage(event);
+            case "ROLL_CALL"          -> handleRollCall(event);
+            case "ATTEND_COUNT"       -> handleAttendCount(event);
             default -> log.debug("未知事件类型: {}", event.getEventType());
         }
+    }
+
+    private void handleBarrage(TeachingEvent event) {
+        Map<String, Object> payload = event.getPayload();
+        if (payload == null) return;
+        Object content = payload.get("content");
+        Object style = payload.get("style");
+        broadcastService.broadcastBarrage(
+                event.getLessonId(),
+                content == null ? "" : content.toString(),
+                style == null ? "roll" : style.toString());
+    }
+
+    private void handleRollCall(TeachingEvent event) {
+        broadcastService.broadcastRollCall(event.getLessonId(), event.getPayload());
+    }
+
+    private void handleAttendCount(TeachingEvent event) {
+        Map<String, Object> payload = event.getPayload();
+        if (payload == null) return;
+        Object count = payload.get("count");
+        broadcastService.broadcastAttendCount(
+                event.getLessonId(),
+                count instanceof Number n ? n.longValue() : 0L);
     }
 
     private void handleQuestionPublished(TeachingEvent event) {

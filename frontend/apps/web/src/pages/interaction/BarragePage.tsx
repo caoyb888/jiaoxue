@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { interactionApi, type BarrageDTO } from '@edu/api/modules/interaction'
+import { useLessonTopic } from '../../hooks/useLessonTopic'
 
 interface BarrageItem {
   id: string
@@ -89,12 +90,16 @@ export default function BarragePage() {
     })
   }
 
+  // 订阅全班弹幕广播：所有人（含发送者）经 WebSocket 收到后统一上屏，避免本地回显与广播重复
+  useLessonTopic<{ content: string; style?: BarrageDTO['style'] }>(id, 'barrage', (msg) => {
+    addBarrage(msg.content, msg.style ?? 'roll')
+  })
+
   const handleSend = async () => {
     if (!input.trim() || sending) return
     setSending(true)
     try {
       await interactionApi.sendBarrage(id, { content: input.trim(), style })
-      addBarrage(input.trim(), style)
       setInput('')
     } finally {
       setSending(false)
