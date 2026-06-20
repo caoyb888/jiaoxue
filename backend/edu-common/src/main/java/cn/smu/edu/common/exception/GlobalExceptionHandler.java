@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -38,6 +39,13 @@ public class GlobalExceptionHandler {
         }
         log.warn("参数校验失败: {}", msg);
         return Result.fail(ErrorCode.PARAM_ERROR.getCode(), msg);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNotFound(NoResourceFoundException e) {
+        log.warn("资源不存在: {}", e.getResourcePath());
+        return Result.fail(ErrorCode.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
