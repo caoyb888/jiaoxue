@@ -36,8 +36,7 @@ const studentExamApi = {
   getActiveQuestion: (lessonId: string): Promise<ActiveQuestionVO | null> =>
     http.get(`/v1/exam/lessons/${lessonId}/questions/current`),
 
-  // ⚠ 后端暂无随堂答题提交端点（仅 S5 正式考试 /publishes/{id}/submit 存在）。
-  // 保留调用以便后端补齐该端点后即可生效；当前提交会失败（UI 停留在作答态）。
+  // POST /lessons/{id}/answers：客观题即时返回对错/正确答案/解析（LessonAnswerResultVO）
   submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<AnswerResultVO> =>
     http.post(`/v1/exam/lessons/${lessonId}/answers`, dto),
 }
