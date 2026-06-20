@@ -45,19 +45,13 @@ export default function LoginPage() {
       // Decode JWT to extract userId, then fetch user profile
       // JWT uses base64url (- and _ instead of + and /) — must normalize before atob()
       try {
-        console.log('[login] data keys:', Object.keys(data ?? {}))
-        const token = (data as unknown as { accessToken: string; data?: { accessToken: string } }).accessToken
-          ?? (data as unknown as { data: { accessToken: string } }).data?.accessToken
-        if (!token) throw new Error('no accessToken in response')
-        const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        const b64 = data.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
         const payload = JSON.parse(atob(b64))
-        console.log('[login] payload:', JSON.stringify(payload))
         const userId: number = payload.userId ?? Number(payload.sub)
         const userInfo = await userApi.getUserById(userId)
-        console.log('[login] userInfo:', JSON.stringify(userInfo))
         setUserInfo(userId, userInfo.username, userInfo.realName, userInfo.roles)
-      } catch (e) {
-        console.error('[login] profile error:', String(e))
+      } catch {
+        // profile fetch failed — dashboard still accessible, roles show as empty
       }
       navigate('/dashboard', { replace: true })
     },
