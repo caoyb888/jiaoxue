@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStartLesson, useEndLesson, useLessonDetail, courseApi } from '@edu/api'
 import type { LessonStartVO } from '@edu/api'

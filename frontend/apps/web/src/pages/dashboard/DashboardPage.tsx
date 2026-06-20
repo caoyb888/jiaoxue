@@ -1,4 +1,3 @@
-import React from 'react'
 import { useAuthStore } from '@edu/store'
 import { authApi } from '@edu/api'
 import { useNavigate, Link } from 'react-router-dom'

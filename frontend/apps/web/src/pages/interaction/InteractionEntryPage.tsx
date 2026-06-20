@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { useMyClasses } from '@edu/api'
 import type { ClassRoomVO } from '@edu/api'
