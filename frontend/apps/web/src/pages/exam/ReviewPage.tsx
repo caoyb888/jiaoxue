@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { http } from '@edu/api'
@@ -64,12 +64,11 @@ export function ReviewPage() {
   )
 }
 
-function AnswerCard({ answer, publishId }: { answer: StudentAnswerVO; publishId: number }) {
+function AnswerCard({ answer }: { answer: StudentAnswerVO; publishId: number }) {
   const qc = useQueryClient()
   const [score, setScore] = useState(answer.score ?? '')
   const [comment, setComment] = useState(answer.comment ?? '')
   const [isCorrect, setIsCorrect] = useState<number | undefined>(answer.isCorrect ?? undefined)
-  const isSubjective = ![1, 2, 3, 6].includes(0) // 由题型判断（此处简化展示）
 
   const reviewMutation = useMutation({
     mutationFn: (dto: ReviewDTO) => http.put(`/v1/exam/review/${answer.id}`, dto),

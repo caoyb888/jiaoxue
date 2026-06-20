@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { http } from '@edu/api'
-import { QUESTION_TYPES } from '@edu/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 

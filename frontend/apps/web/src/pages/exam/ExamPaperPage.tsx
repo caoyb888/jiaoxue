@@ -13,7 +13,7 @@ import {
   QUESTION_TYPES,
   OPTION_TYPES,
 } from '@edu/api'
-import type { ExamPaperVO, PaperQuestionVO, QuestionVO, QuestionBankVO } from '@edu/api'
+import type { ExamPaperVO, PaperQuestionVO, QuestionVO } from '@edu/api'
 
 // ─── Top-level page ───────────────────────────────────────────────────────────
 

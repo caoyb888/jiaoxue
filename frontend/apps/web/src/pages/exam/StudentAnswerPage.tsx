@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { http } from '@edu/api'
 import { QUESTION_TYPES, OPTION_TYPES } from '@edu/api'
 import type { QuestionOptionVO } from '@edu/api'
@@ -41,7 +41,6 @@ const studentExamApi = {
 
 export default function StudentAnswerPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
-  const qc = useQueryClient()
 
   const { data: activeRes, isLoading } = useQuery({
     queryKey: ['student', 'active-question', lessonId],

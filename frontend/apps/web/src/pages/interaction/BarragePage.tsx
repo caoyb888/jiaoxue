@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { interactionApi, type BarrageDTO } from '@edu/api/modules/interaction'
 
 interface BarrageItem {

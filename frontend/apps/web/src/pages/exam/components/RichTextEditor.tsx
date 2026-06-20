@@ -35,10 +35,10 @@ export function RichTextEditor({ value, onChange, placeholder = '请输入题干
       const formData = new FormData()
       formData.append('file', file)
       try {
-        const res = await http.post<{ data: { url: string } }>('/v1/file/upload/image', formData, {
+        const res = await http.post<FormData, { url: string }>('/v1/file/upload/image', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        const url = res.data?.url
+        const url = res?.url
         if (url) {
           editor.chain().focus().setImage({ src: url, alt: file.name }).run()
         }

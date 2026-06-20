@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useGenerateCode, useCurrentCode, useAttendanceList, useRollCall, type RollCallVO } from '@edu/api/modules/interaction'
-import { useQuery } from '@tanstack/react-query'
-import { interactionApi } from '@edu/api/modules/interaction'
 
 /** 教师端签到管理页（S3-11） */
 export default function AttendancePage() {
@@ -10,7 +8,7 @@ export default function AttendancePage() {
   const id = Number(lessonId)
 
   const [countdown, setCountdown] = useState(0)
-  const [wsCount, setWsCount] = useState<number | null>(null)
+  const [wsCount] = useState<number | null>(null)
   const [rollCallResult, setRollCallResult] = useState<RollCallVO | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -22,7 +20,6 @@ export default function AttendancePage() {
 
   // WebSocket：订阅签到人数实时推送
   useEffect(() => {
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
     // 使用 SockJS + STOMP 连接（此处简化为原生 WS 演示，实际需引入 @stomp/stompjs）
     // 真实实现：stompClient.subscribe(`/topic/lesson/${id}/attend`, ...)
     return () => {

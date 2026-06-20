@@ -71,38 +71,49 @@ export interface ClassScoreDTO {
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
+// 注意：http 拦截器已将 Result 信封解包为 data，故第二个泛型(axios 的 R)即为
+// 解包后的真实负载类型；不要只写一个泛型(那会得到 AxiosResponse<T>)。
 export const interactionApi = {
   generateCode: (lessonId: number) =>
-    apiClient.post<AttendCodeVO>(`/interaction/lesson/${lessonId}/attend/code`),
+    apiClient.post<void, AttendCodeVO>(`/interaction/lesson/${lessonId}/attend/code`),
 
   getCurrentCode: (lessonId: number) =>
-    apiClient.get<AttendCodeVO>(`/interaction/lesson/${lessonId}/attend/code`),
+    apiClient.get<void, AttendCodeVO>(`/interaction/lesson/${lessonId}/attend/code`),
 
   attend: (lessonId: number, data: { code?: string; qrToken?: string }) =>
-    apiClient.post<AttendResultVO>(`/interaction/lesson/${lessonId}/attend`, data),
+    apiClient.post<{ code?: string; qrToken?: string }, AttendResultVO>(
+      `/interaction/lesson/${lessonId}/attend`,
+      data
+    ),
 
   listAttendance: (lessonId: number) =>
-    apiClient.get<AttendanceListVO>(`/interaction/lesson/${lessonId}/attendance`),
+    apiClient.get<void, AttendanceListVO>(`/interaction/lesson/${lessonId}/attendance`),
 
   modifyAttendance: (lessonId: number, studentId: number, data: { status: number }) =>
-    apiClient.put<void>(`/interaction/lesson/${lessonId}/attendance/${studentId}`, data),
+    apiClient.put<{ status: number }, void>(
+      `/interaction/lesson/${lessonId}/attendance/${studentId}`,
+      data
+    ),
 
   sendBarrage: (lessonId: number, data: BarrageDTO) =>
-    apiClient.post<void>(`/interaction/lesson/${lessonId}/barrage`, data),
+    apiClient.post<BarrageDTO, void>(`/interaction/lesson/${lessonId}/barrage`, data),
 
   rollCall: (lessonId: number, data: RollCallDTO) =>
-    apiClient.post<RollCallVO>(`/interaction/lesson/${lessonId}/roll-call`, data),
+    apiClient.post<RollCallDTO, RollCallVO>(`/interaction/lesson/${lessonId}/roll-call`, data),
 
   slideFeedback: (lessonId: number, data: SlideFeedbackDTO) =>
-    apiClient.post<void>(`/interaction/lesson/${lessonId}/slide-feedback`, data),
+    apiClient.post<SlideFeedbackDTO, void>(`/interaction/lesson/${lessonId}/slide-feedback`, data),
 
   slideFeedbackStats: (lessonId: number) =>
-    apiClient.get<Array<{ slide_page: number; count: number }>>(
+    apiClient.get<void, Array<{ slide_page: number; count: number }>>(
       `/interaction/lesson/${lessonId}/slide-feedback/stats`
     ),
 
   addScore: (lessonId: number, classId: number, data: ClassScoreDTO) =>
-    apiClient.post<void>(`/interaction/lesson/${lessonId}/score?classId=${classId}`, data),
+    apiClient.post<ClassScoreDTO, void>(
+      `/interaction/lesson/${lessonId}/score?classId=${classId}`,
+      data
+    ),
 }
 
 // ─── React Query Hooks ────────────────────────────────────────────────────────

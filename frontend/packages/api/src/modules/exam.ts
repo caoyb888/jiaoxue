@@ -292,7 +292,7 @@ export function useCreateQuestion() {
 export function useDeleteQuestion() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ questionId, bankId }: { questionId: number; bankId: number }) =>
+    mutationFn: ({ questionId }: { questionId: number; bankId: number }) =>
       examApi.deleteQuestion(questionId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['exam', 'questions', variables.bankId] })
@@ -331,7 +331,7 @@ export function useCreatePaper() {
 export function useDeletePaper() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ paperId, classId }: { paperId: number; classId: number }) =>
+    mutationFn: ({ paperId }: { paperId: number; classId: number }) =>
       examApi.deletePaper(paperId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['exam', 'papers', variables.classId] })

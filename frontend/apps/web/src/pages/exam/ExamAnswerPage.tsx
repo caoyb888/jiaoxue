@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { examStudentApi } from '@edu/api'
@@ -36,7 +36,7 @@ export function ExamAnswerPage() {
         setAnswers(restored)
       }
     })
-  }, [pid, user?.id])
+  }, [pid, userId])
 
   // 当前答案转 AnswerItemDTO[]
   const getAnswers = useCallback((): AnswerItemDTO[] =>
