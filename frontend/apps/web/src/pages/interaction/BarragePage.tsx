@@ -10,10 +10,13 @@ interface BarrageItem {
   color: string
   track: number
   startX: number
+  /** 创建时间（performance.now()），用于 top/bottom 静止弹幕的 TTL 回收 */
+  createdAt: number
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444']
 const ROLL_SPEED = 120 // px/s
+const TOP_BOTTOM_TTL = 3000 // top/bottom 弹幕静止展示时长（ms）
 
 /** 弹幕展示层 + 发送区（S3-13，三端适配） */
 export default function BarragePage() {
@@ -56,13 +59,13 @@ export default function BarragePage() {
           ctx.fillText(item.content, item.startX, item.track * 28 + 24)
           return item.startX > -ctx.measureText(item.content).width
         } else {
-          // top/bottom 静止显示 3 秒（通过 TTL 控制，此处简化）
+          // top/bottom 静止显示 TOP_BOTTOM_TTL 毫秒后回收（避免无限堆积）
           const y = item.style === 'top'
             ? item.track * 28 + 24
             : canvas.height - item.track * 28 - 10
           ctx.fillStyle = item.color
           ctx.fillText(item.content, canvas.width / 2 - ctx.measureText(item.content).width / 2, y)
-          return true
+          return timestamp - item.createdAt < TOP_BOTTOM_TTL
         }
       })
 
@@ -87,6 +90,7 @@ export default function BarragePage() {
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       track: Math.floor(Math.random() * Math.max(1, tracks - 1)) + 1,
       startX: canvas.width + 20,
+      createdAt: performance.now(),
     })
   }
 
