@@ -25,4 +25,7 @@ public interface UserService {
     void assignRole(Long userId, String roleCode, Long deptId);
 
     void removeRole(Long userId, String roleCode);
+
+    /** 全量替换用户角色：roleIds 对应 RoleEnum 的 id（空列表=清空）。 */
+    void assignRoles(Long userId, java.util.List<Long> roleIds);
 }
