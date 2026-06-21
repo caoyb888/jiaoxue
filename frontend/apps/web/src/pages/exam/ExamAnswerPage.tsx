@@ -196,7 +196,8 @@ function QuestionCard({
                 onChange={() => {
                   if (q.type === 2) {
                     const set = new Set(value.split(''))
-                    set.has(opt.optionLabel) ? set.delete(opt.optionLabel) : set.add(opt.optionLabel)
+                    if (set.has(opt.optionLabel)) set.delete(opt.optionLabel)
+                    else set.add(opt.optionLabel)
                     onChange([...set].sort().join(''))
                   } else {
                     onChange(opt.optionLabel)

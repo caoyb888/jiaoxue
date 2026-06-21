@@ -1,0 +1,20 @@
+# 依赖与构建产物
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# tsc 误emit到源目录的影子产物（src 应仅含 .ts/.tsx）
+# 历史上这些 .js 会被 Vite 优先解析导致加载旧代码，务必不入库
+apps/*/src/**/*.js
+apps/*/src/**/*.d.ts
+apps/web/vite.config.js
+apps/web/vite.config.d.ts
+packages/api/src/**/*.js
+packages/api/src/**/*.d.ts
+packages/store/src/**/*.js
+packages/store/src/**/*.d.ts
+packages/ui/src/**/*.js
+packages/ui/src/**/*.d.ts
+packages/utils/src/**/*.js
+packages/utils/src/**/*.d.ts
