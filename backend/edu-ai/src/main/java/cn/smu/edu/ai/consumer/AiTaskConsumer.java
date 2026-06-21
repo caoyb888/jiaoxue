@@ -3,6 +3,7 @@ package cn.smu.edu.ai.consumer;
 import cn.smu.edu.ai.domain.model.AiRequest;
 import cn.smu.edu.ai.domain.model.ModelType;
 import cn.smu.edu.ai.service.AiGatewayService;
+import cn.smu.edu.ai.service.AiReviewService;
 import cn.smu.edu.ai.service.LessonReportService;
 import cn.smu.edu.common.event.AiTaskEvent;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class AiTaskConsumer {
 
     private final AiGatewayService aiGatewayService;
     private final LessonReportService reportService;
+    private final AiReviewService aiReviewService;
     private final StringRedisTemplate redisTemplate;
 
     @KafkaListener(topics = "edu.ai.tasks", groupId = "edu-ai-task", concurrency = "3")
@@ -124,10 +126,11 @@ public class AiTaskConsumer {
         log.info("AI思维导图生成完成: lessonId={}", event.getLessonId());
     }
 
-    /** 主观题智能批改 — 业务逻辑在 S6-02/S6-03 接入 AiReviewService */
+    /** 主观题智能批改（S6-02）：bizId 携带 publishId */
     private void handleReview(AiTaskEvent event) {
-        log.info("AI批改任务受理（待 S6-02 AiReviewService 接入）: lessonId={}, taskId={}",
-                event.getLessonId(), event.getTaskId());
+        int count = aiReviewService.reviewByPublish(event.getBizId(), event.getTaskId());
+        log.info("AI批改任务完成: publishId={}, 批改题数={}, taskId={}",
+                event.getBizId(), count, event.getTaskId());
     }
 
     /** 一键 AI 出题 — 业务逻辑在 S6-07 接入 AiQuestionGenerateService */
