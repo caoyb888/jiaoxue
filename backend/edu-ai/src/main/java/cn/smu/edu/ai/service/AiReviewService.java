@@ -6,6 +6,7 @@ import cn.smu.edu.ai.domain.model.AiRequest;
 import cn.smu.edu.ai.domain.model.ModelType;
 import cn.smu.edu.ai.repository.AiReviewResultRepository;
 import cn.smu.edu.ai.repository.ReviewQueryMapper;
+import cn.smu.edu.ai.repository.ReviewWritebackMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +36,13 @@ public class AiReviewService {
 
     private final ReviewQueryMapper reviewQueryMapper;
     private final AiReviewResultRepository reviewResultRepository;
+    private final ReviewWritebackMapper reviewWritebackMapper;
     private final AiGatewayService aiGatewayService;
     private final ObjectMapper objectMapper;
 
     /**
-     * 批改某次试卷发布下的全部待批改主观题。
-     * @return 实际批改的题数
+     * 批改某次试卷发布下的全部待批改主观题，并写回 student_answer。
+     * @return 实际批改的题数（解析成功且已写回）
      */
     public int reviewByPublish(Long publishId, String taskId) {
         if (publishId == null) {
@@ -55,6 +57,10 @@ public class AiReviewService {
             try {
                 AiReviewResult result = reviewOne(item, publishId, taskId);
                 reviewResultRepository.save(result);
+                // S6-03：解析成功才写回 student_answer（review_status=1）；非法降级题保留 0 待人工
+                if (result.isParsed() && result.getScore() != null) {
+                    reviewWritebackMapper.writeBack(result.getAnswerId(), result.getScore(), result.getComment());
+                }
                 done++;
             } catch (Exception e) {
                 log.error("单题批改失败: answerId={}, publishId={}", item.getAnswerId(), publishId, e);
