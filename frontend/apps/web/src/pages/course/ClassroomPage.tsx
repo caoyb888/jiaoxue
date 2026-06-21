@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useStartLesson, useEndLesson, useLessonDetail, courseApi } from '@edu/api'
+import { useStartLesson, useEndLesson, useLessonDetail, useMaterialList, courseApi } from '@edu/api'
 import type { LessonStartVO } from '@edu/api'
 import { useAuthStore } from '@edu/store'
 import { useLessonTopic } from '../../hooks/useLessonTopic'
@@ -14,6 +14,7 @@ export default function ClassroomPage() {
 
   const [lessonId, setLessonId] = useState<number | null>(null)
   const [lessonInfo, setLessonInfo] = useState<LessonStartVO | null>(null)
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(null)
   const [currentSlide, setCurrentSlide] = useState(1)
   const [elapsedMin, setElapsedMin] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -26,6 +27,7 @@ export default function ClassroomPage() {
   )
 
   const { data: lesson } = useLessonDetail(lessonId)
+  const { data: materials } = useMaterialList()
   const startLesson = useStartLesson()
   const endLesson = useEndLesson()
 
@@ -48,6 +50,7 @@ export default function ClassroomPage() {
     const result = await startLesson.mutateAsync({
       classId: Number(classId),
       liveMode: 'SLIDE_ONLY',
+      materialId: selectedMaterialId ?? undefined,
     })
     setLessonId(result.lessonId)
     setLessonInfo(result)
@@ -99,13 +102,31 @@ export default function ClassroomPage() {
         {isTeacher && (
           <div className="flex items-center gap-2">
             {!isActive ? (
-              <button
-                onClick={handleStart}
-                disabled={startLesson.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {startLesson.isPending ? '开课中…' : '开始上课'}
-              </button>
+              <>
+                <select
+                  value={selectedMaterialId ?? ''}
+                  onChange={(e) =>
+                    setSelectedMaterialId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="max-w-[14rem] rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm text-gray-200"
+                  title="选择本节课件"
+                >
+                  <option value="">不使用课件</option>
+                  {materials?.list.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.title}
+                      {m.pageCount ? ` (${m.pageCount}页)` : ''}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleStart}
+                  disabled={startLesson.isPending}
+                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {startLesson.isPending ? '开课中…' : '开始上课'}
+                </button>
+              </>
             ) : (
               <button
                 onClick={handleEnd}
