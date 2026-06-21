@@ -28,17 +28,17 @@ test.describe("认证模块", () => {
   test("管理员登录 → 进入仪表盘", async ({ page }) => {
     await loginAs(page, ADMIN_PHONE);
     await expect(page.locator("header")).toContainText("智慧教学平台");
-    await expect(page.locator("main")).toContainText("欢迎回来");
+    await expect(page.locator("main")).toContainText("欢迎使用山东管理学院智慧教学系统");
   });
 
   test("教师账号登录成功", async ({ page }) => {
     await loginAs(page, TEACHER_PHONE);
-    await expect(page.locator("main")).toContainText("欢迎回来");
+    await expect(page.locator("main")).toContainText("欢迎使用山东管理学院智慧教学系统");
   });
 
   test("学生账号登录成功", async ({ page }) => {
     await loginAs(page, STUDENT_PHONE);
-    await expect(page.locator("main")).toContainText("欢迎回来");
+    await expect(page.locator("main")).toContainText("欢迎使用山东管理学院智慧教学系统");
   });
 
   test("手机号格式校验", async ({ page }) => {
