@@ -25,6 +25,13 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
       },
+      // 课件幻灯片：/minio/edu-slides/... → MinIO（剥离 /minio 前缀）
+      // ClassroomPage 用 `/minio/edu-slides/${slideDir}slide_XXXX.png` 加载课件页
+      '/minio': {
+        target: 'http://100.84.68.115:19000',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/minio/, ''),
+      },
     },
   },
 })
