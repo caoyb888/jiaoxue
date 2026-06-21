@@ -31,6 +31,7 @@ class AiTaskConsumerTest {
 
     @Mock AiGatewayService aiGatewayService;
     @Mock LessonReportService reportService;
+    @Mock cn.smu.edu.ai.service.AiReviewService aiReviewService;
     @Mock StringRedisTemplate redisTemplate;
     @Mock ValueOperations<String, String> valueOps;
 
@@ -42,7 +43,7 @@ class AiTaskConsumerTest {
     }
 
     private AiTaskEvent event(String taskId, String type) {
-        return new AiTaskEvent(taskId, 100L, 1L, 10L, type, LocalDateTime.now());
+        return new AiTaskEvent(taskId, 100L, 1L, 10L, type, LocalDateTime.now(), null);
     }
 
     @Test
@@ -68,12 +69,14 @@ class AiTaskConsumerTest {
     }
 
     @Test
-    void consume_shouldRouteReview_withoutCallingGateway() {
+    void consume_shouldRouteReviewToReviewService() {
         when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        AiTaskEvent ev = AiTaskEvent.review(500L, 1L, "t3");
 
-        consumer.consumeAiTask(event("t3", "REVIEW"));
+        consumer.consumeAiTask(ev);
 
-        // REVIEW 在 S6-02 接入，本阶段仅受理不调用网关
+        // REVIEW 路由到 AiReviewService，bizId=publishId
+        verify(aiReviewService).reviewByPublish(500L, "t3");
         verify(aiGatewayService, never()).chatSync(any());
     }
 

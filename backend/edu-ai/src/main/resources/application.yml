@@ -31,6 +31,9 @@ spring:
       uri: ${MONGO_URI:mongodb://100.84.68.115:17017/edu_ai}
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:100.84.68.115:19092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
       group-id: edu-ai-task
       auto-offset-reset: earliest
