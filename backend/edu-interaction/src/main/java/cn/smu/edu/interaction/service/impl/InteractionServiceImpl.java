@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -107,6 +108,8 @@ public class InteractionServiceImpl implements InteractionService {
         } catch (Exception e) {
             record.setStudentIds("[]");
         }
+        // called_at 为 NOT NULL，且全局 MetaObjectHandler 未覆盖该字段，显式赋值兜底
+        record.setCalledAt(LocalDateTime.now());
         randomCallMapper.insert(record);
 
         // Kafka 广播（edu-notify 消费后推 STOMP /topic/lesson/{id}/roll-call）
