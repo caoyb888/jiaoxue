@@ -32,6 +32,7 @@ class AiTaskConsumerTest {
     @Mock AiGatewayService aiGatewayService;
     @Mock LessonReportService reportService;
     @Mock cn.smu.edu.ai.service.AiReviewService aiReviewService;
+    @Mock cn.smu.edu.ai.service.AiNotifyPublisher notifyPublisher;
     @Mock StringRedisTemplate redisTemplate;
     @Mock ValueOperations<String, String> valueOps;
 
@@ -75,8 +76,9 @@ class AiTaskConsumerTest {
 
         consumer.consumeAiTask(ev);
 
-        // REVIEW 路由到 AiReviewService，bizId=publishId
+        // REVIEW 路由到 AiReviewService，bizId=publishId，并单播通知教师
         verify(aiReviewService).reviewByPublish(500L, "t3");
+        verify(notifyPublisher).notifyUser(eq(1L), eq("AI_REVIEW_DONE"), anyString(), any());
         verify(aiGatewayService, never()).chatSync(any());
     }
 
