@@ -7,6 +7,7 @@ import cn.smu.edu.user.domain.dto.UserQueryDTO;
 import cn.smu.edu.user.domain.dto.UserUpdateDTO;
 import cn.smu.edu.user.domain.entity.SysUser;
 import cn.smu.edu.user.domain.entity.UserRole;
+import cn.smu.edu.user.domain.enums.RoleEnum;
 import cn.smu.edu.user.domain.vo.UserVO;
 import cn.smu.edu.user.repository.SysUserMapper;
 import cn.smu.edu.user.repository.UserRoleMapper;
@@ -19,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -147,5 +150,40 @@ public class UserServiceImpl implements UserService {
         userRoleMapper.delete(new LambdaQueryWrapper<UserRole>()
                 .eq(UserRole::getUserId, userId)
                 .eq(UserRole::getRoleCode, roleCode));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void assignRoles(Long userId, List<Long> roleIds) {
+        if (userMapper.selectById(userId) == null) {
+            throw new BizException(ErrorCode.USER_NOT_FOUND);
+        }
+        // roleId → roleCode（拒绝未知 id）
+        List<String> roleCodes = roleIds.stream().distinct().map(id -> {
+            RoleEnum role = RoleEnum.fromId(id);
+            if (role == null) {
+                throw new BizException(ErrorCode.PARAM_ERROR.getCode(), "未知角色 id: " + id);
+            }
+            return role.getRoleCode();
+        }).toList();
+
+        // 保留既有角色的 dept_id（避免全量替换丢失院系作用域）。
+        // 注意：dept_id 可空，不能用 Collectors.toMap（其对 null value 抛 NPE）。
+        Map<String, Long> existingDeptByCode = new HashMap<>();
+        for (UserRole ur : userRoleMapper.selectList(
+                new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId))) {
+            existingDeptByCode.putIfAbsent(ur.getRoleCode(), ur.getDeptId());
+        }
+
+        // 全量替换：先清后插
+        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
+        for (String code : roleCodes) {
+            UserRole ur = new UserRole();
+            ur.setUserId(userId);
+            ur.setRoleCode(code);
+            ur.setDeptId(existingDeptByCode.get(code));
+            userRoleMapper.insert(ur);
+        }
+        log.info("角色全量替换: userId={}, roles={}", userId, roleCodes);
     }
 }
