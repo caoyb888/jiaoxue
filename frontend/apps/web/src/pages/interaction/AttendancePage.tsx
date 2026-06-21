@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { QRCodeSVG } from 'qrcode.react'
 import { useGenerateCode, useCurrentCode, useAttendanceList, useRollCall, type RollCallVO } from '@edu/api/modules/interaction'
 import { useLessonTopic } from '../../hooks/useLessonTopic'
 
@@ -70,14 +71,14 @@ export default function AttendancePage() {
 
             {codeData ? (
               <>
-                {/* 二维码占位（实际用 qrcode.react 渲染 qrToken） */}
-                <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center mb-4 border-2 border-dashed border-gray-300">
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400 mb-1">二维码</div>
-                    <div className="font-mono text-xs text-gray-500 break-all px-2">
-                      {codeData.qrToken.slice(0, 16)}…
-                    </div>
-                  </div>
+                {/* 二维码：编码深链，学生扫码后跳签到页并自动用 qrToken 签到 */}
+                <div className="w-48 h-48 bg-white rounded-xl flex items-center justify-center mb-4 border border-gray-200 p-2">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/lesson/${id}/attend?qrToken=${encodeURIComponent(codeData.qrToken)}`}
+                    size={176}
+                    level="M"
+                    marginSize={0}
+                  />
                 </div>
 
                 {/* 口令 */}

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useAttend } from '@edu/api/modules/interaction'
 
 type Mode = 'select' | 'qr' | 'code' | 'success' | 'already'
@@ -8,6 +8,8 @@ type Mode = 'select' | 'qr' | 'code' | 'success' | 'already'
 export default function StudentAttendPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
   const id = Number(lessonId)
+  const [searchParams] = useSearchParams()
+  const scannedToken = searchParams.get('qrToken')
 
   const [mode, setMode] = useState<Mode>('select')
   const [code, setCode] = useState('')
@@ -15,6 +17,23 @@ export default function StudentAttendPage() {
   const [totalCount, setTotalCount] = useState<number | null>(null)
 
   const attend = useAttend(id)
+
+  // 扫码深链进入（?qrToken=...）：自动用 qrToken 签到，无需手动操作
+  const autoTriedRef = useRef(false)
+  useEffect(() => {
+    if (!scannedToken || autoTriedRef.current || !id) return
+    autoTriedRef.current = true
+    attend
+      .mutateAsync({ qrToken: scannedToken })
+      .then((result) => {
+        setTotalCount(result.totalCount)
+        setMode(result.firstAttend ? 'success' : 'already')
+      })
+      .catch(() => {
+        setError('二维码无效或已过期，请改用口令签到')
+        setMode('code')
+      })
+  }, [scannedToken, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCodeSubmit = async () => {
     if (!code.trim()) {
