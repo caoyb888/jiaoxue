@@ -1,7 +1,7 @@
 export { http, setAccessToken } from './client'
 export { authApi } from './modules/auth'
 export { userApi } from './modules/user'
-export { courseApi, materialApi, useCourseList, useMyClasses, useLessonDetail, useStartLesson, useEndLesson, useMaterialList } from './modules/course'
+export { courseApi, materialApi, useCourseList, useMyClasses, useLessonDetail, useActiveLesson, useStartLesson, useEndLesson, useMaterialList } from './modules/course'
 export { interactionApi, useCurrentCode, useGenerateCode, useAttend, useAttendanceList, useRollCall } from './modules/interaction'
 export type { TokenVO, SmsLoginDTO } from './modules/auth'
 export type { UserVO, UserQueryParams, PageResult, DeptTreeNode, RoleVO } from './modules/user'

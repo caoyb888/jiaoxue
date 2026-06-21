@@ -133,6 +133,10 @@ export const courseApi = {
   getLessonDetail: (lessonId: number) =>
     http.get<void, LessonDetailVO>(`/v1/course/lesson/${lessonId}`),
 
+  // 课堂列表（按班级/状态过滤）。status: 0-未开始 1-进行中 2-已结束
+  listLessons: (params: { classId: number; status?: number; page?: number; size?: number }) =>
+    http.get<typeof params, ApiPageResult<LessonDetailVO>>('/v1/course/lesson/list', { params }),
+
   updateSlide: (lessonId: number, slideNo: number) =>
     http.post<{ slideNo: number }, void>(`/v1/course/lesson/${lessonId}/slide`, { slideNo }),
 }
@@ -172,6 +176,17 @@ export function useLessonDetail(lessonId: number | null) {
     queryFn: () => courseApi.getLessonDetail(lessonId!),
     enabled: lessonId !== null,
     staleTime: 5_000,
+  })
+}
+
+/** 取某班级当前进行中的课堂（status=1），无则返回 null。供学生进入签到/答题。 */
+export function useActiveLesson(classId: number | null) {
+  return useQuery({
+    queryKey: ['activeLesson', classId],
+    queryFn: () => courseApi.listLessons({ classId: classId!, status: 1, size: 1 }),
+    enabled: classId !== null,
+    select: (page): LessonDetailVO | null => page.list[0] ?? null,
+    staleTime: 10_000,
   })
 }
 
