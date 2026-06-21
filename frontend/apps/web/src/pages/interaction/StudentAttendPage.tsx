@@ -1,8 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import jsQR from 'jsqr'
 import { useAttend } from '@edu/api/modules/interaction'
 
 type Mode = 'select' | 'qr' | 'code' | 'success' | 'already'
+
+/** 从扫到的二维码内容解析 qrToken（深链含 ?qrToken=，否则按原始串兜底） */
+function parseQrToken(raw: string): string {
+  try {
+    const url = new URL(raw)
+    const t = url.searchParams.get('qrToken')
+    if (t) return t
+  } catch {
+    /* 非 URL，按原始串处理 */
+  }
+  return raw
+}
 
 /** 学生签到页（S3-12）：支持口令签到和二维码扫描 */
 export default function StudentAttendPage() {
@@ -18,43 +31,105 @@ export default function StudentAttendPage() {
 
   const attend = useAttend(id)
 
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const rafRef = useRef<number | null>(null)
+
+  // 统一签到提交：成功→success/already，失败→设错误并可选回退
+  const submittedRef = useRef(false)
+  const submitAttend = useCallback(
+    async (payload: { code?: string; qrToken?: string }, onError: (msg: string) => void) => {
+      if (submittedRef.current) return
+      submittedRef.current = true
+      try {
+        const result = await attend.mutateAsync(payload)
+        setTotalCount(result.totalCount)
+        setMode(result.firstAttend ? 'success' : 'already')
+      } catch {
+        submittedRef.current = false
+        onError(payload.qrToken ? '二维码无效或已过期，请改用口令签到' : '签到码无效或已过期，请重新输入')
+      }
+    },
+    [attend],
+  )
+
+  const stopScan = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = null
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+  }, [])
+
   // 扫码深链进入（?qrToken=...）：自动用 qrToken 签到，无需手动操作
   const autoTriedRef = useRef(false)
   useEffect(() => {
     if (!scannedToken || autoTriedRef.current || !id) return
     autoTriedRef.current = true
-    attend
-      .mutateAsync({ qrToken: scannedToken })
-      .then((result) => {
-        setTotalCount(result.totalCount)
-        setMode(result.firstAttend ? 'success' : 'already')
-      })
-      .catch(() => {
-        setError('二维码无效或已过期，请改用口令签到')
-        setMode('code')
-      })
-  }, [scannedToken, id]) // eslint-disable-line react-hooks/exhaustive-deps
+    submitAttend({ qrToken: scannedToken }, (msg) => {
+      setError(msg)
+      setMode('code')
+    })
+  }, [scannedToken, id, submitAttend])
 
-  const handleCodeSubmit = async () => {
+  // 卸载时释放摄像头
+  useEffect(() => stopScan, [stopScan])
+
+  const handleCodeSubmit = () => {
     if (!code.trim()) {
       setError('请输入签到口令')
       return
     }
     setError(null)
-    try {
-      const result = await attend.mutateAsync({ code: code.trim().toUpperCase() })
-      setTotalCount(result.totalCount)
-      setMode(result.firstAttend ? 'success' : 'already')
-    } catch (e: unknown) {
-      setError('签到码无效或已过期，请重新输入')
-    }
+    submitAttend({ code: code.trim().toUpperCase() }, setError)
   }
 
-  // 摄像头扫码（Web 端用 getUserMedia，小程序端用 wx.scanCode）
+  // 应用内摄像头扫码（getUserMedia + jsQR 逐帧解码）
   const handleScanQr = async () => {
-    // Web 端：提示用户使用摄像头（实际需集成 jsQR 或 zxing-js）
-    // 此处演示：直接跳转到口令模式作为降级
-    setMode('code')
+    setError(null)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('当前环境不支持摄像头，请改用口令签到')
+      setMode('code')
+      return
+    }
+    setMode('qr')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      })
+      streamRef.current = stream
+      const video = videoRef.current
+      if (!video) return
+      video.srcObject = stream
+      await video.play()
+
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+      const tick = () => {
+        if (!streamRef.current || video.readyState !== video.HAVE_ENOUGH_DATA) {
+          rafRef.current = requestAnimationFrame(tick)
+          return
+        }
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const result = jsQR(img.data, img.width, img.height)
+        if (result?.data) {
+          stopScan()
+          submitAttend({ qrToken: parseQrToken(result.data) }, (msg) => {
+            setError(msg)
+            setMode('code')
+          })
+          return
+        }
+        rafRef.current = requestAnimationFrame(tick)
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    } catch {
+      stopScan()
+      setError('无法访问摄像头（需授权或 HTTPS），请改用口令签到')
+      setMode('code')
+    }
   }
 
   if (mode === 'success') {
@@ -135,6 +210,35 @@ export default function StudentAttendPage() {
             </button>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // 摄像头扫码界面
+  if (mode === 'qr') {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+        <div className="relative w-full max-w-sm aspect-square overflow-hidden rounded-3xl bg-gray-900">
+          <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
+          {/* 取景框 */}
+          <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/70" />
+          <p className="absolute bottom-4 left-0 right-0 text-center text-sm text-white/80">
+            将教师屏幕二维码对准取景框
+          </p>
+        </div>
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        <button
+          onClick={() => { stopScan(); setMode('select'); setError(null) }}
+          className="mt-6 text-sm text-white/70 hover:text-white"
+        >
+          取消扫码
+        </button>
+        <button
+          onClick={() => { stopScan(); setMode('code'); setError(null) }}
+          className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+        >
+          改用口令签到
+        </button>
       </div>
     )
   }
