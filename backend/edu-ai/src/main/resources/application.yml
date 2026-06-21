@@ -64,6 +64,14 @@ spring.ai.openai:
 ai:
   gateway:
     mock-mode: ${AI_MOCK_MODE:true}
+  # 课堂语音转写（S6-04）。mock-mode=true 用占位转写（默认，CI/无 key 可跑）；
+  # =false 切换科大讯飞 RTASR，需配置 app-id / api-key。
+  asr:
+    mock-mode: ${AI_ASR_MOCK_MODE:true}
+    xfyun:
+      host-url: ${AI_ASR_XFYUN_HOST:wss://rtasr.xfyun.cn/v1/ws}
+      app-id: ${AI_ASR_XFYUN_APPID:}
+      api-key: ${AI_ASR_XFYUN_APIKEY:}
   security:
     sensitive-words: ${AI_SENSITIVE_WORDS:}
   model:
