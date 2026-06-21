@@ -13,6 +13,9 @@ public class RollCallVO {
 
     private List<Long> studentIds;
 
+    /** 被点到学生的姓名/学号（与 studentIds 对应） */
+    private List<StudentBriefVO> students;
+
     /** random/spotlight/racing */
     private String style;
 

@@ -5,6 +5,7 @@ import cn.smu.edu.common.event.TeachingEvent;
 import cn.smu.edu.interaction.domain.dto.*;
 import cn.smu.edu.interaction.domain.entity.*;
 import cn.smu.edu.interaction.domain.vo.RollCallVO;
+import cn.smu.edu.interaction.domain.vo.StudentBriefVO;
 import cn.smu.edu.interaction.repository.*;
 import cn.smu.edu.interaction.service.AttendanceQueryService;
 import cn.smu.edu.interaction.service.InteractionService;
@@ -33,6 +34,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final SlideFeedbackMapper slideFeedbackMapper;
     private final ClassScoreMapper classScoreMapper;
     private final AttendanceMapper attendanceMapper;
+    private final StudentInfoMapper studentInfoMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -84,6 +86,7 @@ public class InteractionServiceImpl implements InteractionService {
             return RollCallVO.builder()
                     .lessonId(lessonId)
                     .studentIds(List.of())
+                    .students(List.of())
                     .style(dto.getStyle())
                     .message("没有可点名的学生")
                     .build();
@@ -115,9 +118,17 @@ public class InteractionServiceImpl implements InteractionService {
 
         log.info("随机点名: lessonId={}, picked={}, style={}", lessonId, picked, dto.getStyle());
 
+        // 解析被点学生姓名（按 picked 顺序）
+        Map<Long, StudentBriefVO> nameMap = studentInfoMapper.selectByIds(picked).stream()
+                .collect(Collectors.toMap(StudentBriefVO::getId, b -> b, (a, b) -> a));
+        List<StudentBriefVO> students = picked.stream()
+                .map(uid -> nameMap.getOrDefault(uid, new StudentBriefVO(uid, "学生" + uid, null)))
+                .collect(Collectors.toList());
+
         return RollCallVO.builder()
                 .lessonId(lessonId)
                 .studentIds(new ArrayList<>(picked))
+                .students(students)
                 .style(dto.getStyle())
                 .message("点名成功，共 " + picked.size() + " 人")
                 .build();

@@ -50,9 +50,17 @@ export interface RollCallDTO {
   style?: 'random' | 'spotlight' | 'racing'
 }
 
+export interface StudentBriefVO {
+  id: number
+  realName: string
+  studentNo?: string
+}
+
 export interface RollCallVO {
   lessonId: number
   studentIds: number[]
+  /** 被点学生姓名/学号（与 studentIds 对应） */
+  students?: StudentBriefVO[]
   style: string
   message: string
 }

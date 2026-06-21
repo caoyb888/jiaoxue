@@ -169,7 +169,7 @@ export default function AttendancePage() {
             <div className="bg-purple-50 rounded-xl p-4 text-center">
               <div className="text-sm text-purple-600 mb-2">点名结果</div>
               <div className="text-2xl font-bold text-purple-700">
-                学生 #{rollCallResult.studentIds[0]}
+                {rollCallResult.students?.[0]?.realName ?? `学生 #${rollCallResult.studentIds[0]}`}
               </div>
               <div className="text-xs text-purple-400 mt-1">{rollCallResult.message}</div>
             </div>
