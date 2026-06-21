@@ -2,6 +2,7 @@ package cn.smu.edu.user.controller;
 
 import cn.smu.edu.common.aop.OperationLog;
 import cn.smu.edu.common.result.Result;
+import cn.smu.edu.user.domain.dto.AssignRolesDTO;
 import cn.smu.edu.user.domain.dto.UserCreateDTO;
 import cn.smu.edu.user.domain.dto.UserQueryDTO;
 import cn.smu.edu.user.domain.dto.UserUpdateDTO;
@@ -86,6 +87,16 @@ public class UserController {
             @PathVariable Long userId,
             @PathVariable String roleCode) {
         userService.removeRole(userId, roleCode);
+        return Result.ok();
+    }
+
+    @Operation(summary = "设置用户角色（全量替换，对齐前端 roleIds 契约）")
+    @PutMapping("/{userId}/roles")
+    @OperationLog(module = "user", operation = "设置用户角色")
+    public Result<Void> assignRoles(
+            @PathVariable Long userId,
+            @Valid @RequestBody AssignRolesDTO dto) {
+        userService.assignRoles(userId, dto.getRoleIds());
         return Result.ok();
     }
 }
