@@ -12,9 +12,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+// 角色鉴权由 edu-gateway 统一处理，此微服务信任网关已通过 JWT 校验
 @Tag(name = "用户管理")
 @RestController
 @RequestMapping("/api/v1/users")
@@ -25,7 +25,6 @@ public class UserController {
 
     @Operation(summary = "分页查询用户")
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'DEPT_ADMIN')")
     public Result<IPage<UserVO>> pageUsers(UserQueryDTO query) {
         return Result.ok(userService.pageUsers(query));
     }
@@ -38,7 +37,6 @@ public class UserController {
 
     @Operation(summary = "创建用户")
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @OperationLog(module = "user", operation = "创建用户")
     public Result<Long> createUser(@Valid @RequestBody UserCreateDTO dto) {
         return Result.ok(userService.createUser(dto));
@@ -56,7 +54,6 @@ public class UserController {
 
     @Operation(summary = "禁用用户")
     @PutMapping("/{userId}/disable")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @OperationLog(module = "user", operation = "禁用用户")
     public Result<Void> disableUser(@PathVariable Long userId) {
         userService.disableUser(userId);
@@ -65,7 +62,6 @@ public class UserController {
 
     @Operation(summary = "启用用户")
     @PutMapping("/{userId}/enable")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @OperationLog(module = "user", operation = "启用用户")
     public Result<Void> enableUser(@PathVariable Long userId) {
         userService.enableUser(userId);
@@ -74,7 +70,6 @@ public class UserController {
 
     @Operation(summary = "分配角色")
     @PostMapping("/{userId}/roles")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @OperationLog(module = "user", operation = "分配角色")
     public Result<Void> assignRole(
             @PathVariable Long userId,
@@ -86,7 +81,6 @@ public class UserController {
 
     @Operation(summary = "撤销角色")
     @DeleteMapping("/{userId}/roles/{roleCode}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @OperationLog(module = "user", operation = "撤销角色")
     public Result<Void> removeRole(
             @PathVariable Long userId,

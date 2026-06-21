@@ -9,6 +9,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -26,6 +27,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnClass(name = "org.springframework.kafka.core.KafkaTemplate")
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class OperationLogAspect {
 
     private final org.springframework.kafka.core.KafkaTemplate<String, Object> kafkaTemplate;

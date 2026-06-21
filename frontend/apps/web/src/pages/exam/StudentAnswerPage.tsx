@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { http } from '@edu/api'
 import { QUESTION_TYPES, OPTION_TYPES } from '@edu/api'
 import type { QuestionOptionVO } from '@edu/api'
@@ -8,13 +8,15 @@ import { RichTextView } from './components/RichTextEditor'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+// 对齐后端 LessonQuestionVO（GET /lessons/{id}/questions/current）：主键字段为 id
 interface ActiveQuestionVO {
-  lessonQuestionId: number
+  id: number
   lessonId: number
   questionId: number
   questionType: number
   content: string
   options: QuestionOptionVO[]
+  status: number
   openedAt: string
 }
 
@@ -29,11 +31,13 @@ interface AnswerResultVO {
 
 // ─── API ───────────────────────────────────────────────────────────────────
 
+// 注意：http 拦截器已解包 Result→data，故方法直接 resolve 业务数据。
 const studentExamApi = {
-  getActiveQuestion: (lessonId: string): Promise<{ code: number; data: ActiveQuestionVO | null }> =>
-    http.get(`/v1/exam/lessons/${lessonId}/active-question`),
+  getActiveQuestion: (lessonId: string): Promise<ActiveQuestionVO | null> =>
+    http.get(`/v1/exam/lessons/${lessonId}/questions/current`),
 
-  submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<{ code: number; data: AnswerResultVO }> =>
+  // POST /lessons/{id}/answers：客观题即时返回对错/正确答案/解析（LessonAnswerResultVO）
+  submitAnswer: (lessonId: string, dto: { lessonQuestionId: number; answer: string }): Promise<AnswerResultVO> =>
     http.post(`/v1/exam/lessons/${lessonId}/answers`, dto),
 }
 
@@ -41,7 +45,6 @@ const studentExamApi = {
 
 export default function StudentAnswerPage() {
   const { lessonId } = useParams<{ lessonId: string }>()
-  const qc = useQueryClient()
 
   const { data: activeRes, isLoading } = useQuery({
     queryKey: ['student', 'active-question', lessonId],
@@ -50,7 +53,7 @@ export default function StudentAnswerPage() {
     enabled: !!lessonId,
   })
 
-  const activeQuestion = activeRes?.data
+  const activeQuestion = activeRes
 
   const submitAnswer = useMutation({
     mutationFn: (dto: { lessonQuestionId: number; answer: string }) =>
@@ -61,17 +64,17 @@ export default function StudentAnswerPage() {
   const [lastQuestionId, setLastQuestionId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (activeQuestion && activeQuestion.lessonQuestionId !== lastQuestionId) {
+    if (activeQuestion && activeQuestion.id !== lastQuestionId) {
       setResult(null)
-      setLastQuestionId(activeQuestion.lessonQuestionId)
+      setLastQuestionId(activeQuestion.id)
     }
   }, [activeQuestion, lastQuestionId])
 
   function handleSubmit(answer: string) {
     if (!activeQuestion) return
     submitAnswer.mutate(
-      { lessonQuestionId: activeQuestion.lessonQuestionId, answer },
-      { onSuccess: (res) => setResult(res.data ?? null) }
+      { lessonQuestionId: activeQuestion.id, answer },
+      { onSuccess: (res) => setResult(res ?? null) }
     )
   }
 

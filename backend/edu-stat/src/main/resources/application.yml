@@ -15,6 +15,52 @@ spring:
         server-addr: ${NACOS_ADDR:100.84.68.115:18848}
         namespace: ${NACOS_NAMESPACE:dev}
         file-extension: yaml
+  datasource:
+    url: jdbc:mysql://${DB_HOST:100.84.68.115}:${DB_PORT:13306}/edu_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:root}
+    password: ${DB_PASS:edu_dev_2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 3
+      maximum-pool-size: 10
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:100.84.68.115}
+      port: ${REDIS_PORT:16379}
+      database: 7
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDR:100.84.68.115:19092}
+    consumer:
+      group-id: edu-stat
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+clickhouse:
+  url: jdbc:clickhouse://${CH_HOST:100.84.68.115}:${CH_PORT:18123}/edu_stat_db
+  username: ${CH_USER:default}
+  password: ${CH_PASS:edu_ch_2026}
+
+redisson:
+  address: redis://${REDIS_HOST:100.84.68.115}:${REDIS_PORT:16379}
+  database: 7
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
 logging:
   level:

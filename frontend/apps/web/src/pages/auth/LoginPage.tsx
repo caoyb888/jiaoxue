@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { authApi } from '@edu/api'
+import { authApi, userApi } from '@edu/api'
 import { setAccessToken } from '@edu/api'
 import { useAuthStore } from '@edu/store'
 import { Button, Input } from '@edu/ui'
@@ -10,7 +10,7 @@ type Tab = 'phone' | 'wechat'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { setTokens } = useAuthStore()
+  const { setTokens, setUserInfo } = useAuthStore()
 
   const [tab, setTab] = useState<Tab>('phone')
   const [phone, setPhone] = useState('')
@@ -39,9 +39,20 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: () => authApi.loginByPhone({ phone, code }),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setAccessToken(data.accessToken)
       setTokens(data.accessToken, data.refreshToken)
+      // Decode JWT to extract userId, then fetch user profile
+      // JWT uses base64url (- and _ instead of + and /) — must normalize before atob()
+      try {
+        const b64 = data.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        const payload = JSON.parse(atob(b64))
+        const userId: number = payload.userId ?? Number(payload.sub)
+        const userInfo = await userApi.getUserById(userId)
+        setUserInfo(userId, userInfo.username, userInfo.realName, userInfo.roles)
+      } catch {
+        // profile fetch failed — dashboard still accessible, roles show as empty
+      }
       navigate('/dashboard', { replace: true })
     },
   })

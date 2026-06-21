@@ -3,6 +3,8 @@ export default defineAppConfig({
     'pages/course/index',
     'pages/classroom/index',
     'pages/attend/index',
+    'pages/exam/index',
+    'pages/exam/answer',
   ],
   window: {
     backgroundTextStyle: 'light',

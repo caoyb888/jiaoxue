@@ -25,6 +25,7 @@ volumes:
   edu-mongo-data:
   edu-minio-data:
   edu-es-data:
+  edu-es-plugins:
   edu-clickhouse-data:
   edu-xxljob-data:
 
@@ -102,6 +103,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: edu-zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://100.84.68.115:19092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -201,6 +203,7 @@ services:
       - xpack.security.enrollment.enabled=false
     volumes:
       - edu-es-data:/usr/share/elasticsearch/data
+      - edu-es-plugins:/usr/share/elasticsearch/plugins
     networks:
       - edu-net
     healthcheck:

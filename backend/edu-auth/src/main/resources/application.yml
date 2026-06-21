@@ -15,6 +15,52 @@ spring:
         server-addr: ${NACOS_ADDR:100.84.68.115:18848}
         namespace: ${NACOS_NAMESPACE:dev}
         file-extension: yaml
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:100.84.68.115}:${MYSQL_PORT:13306}/edu_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:edu_dev_2026}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:100.84.68.115}
+      port: ${REDIS_PORT:16379}
+      database: 0
+
+edu:
+  jwt:
+    private-key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCsAPP/NiTKAFfE
+      KKGg+O7TfClEr9CGdBC8vGZh67PxEpHVwzIhhBJ6b6azyuIzJz6WYn0zzamz7o9L
+      P7sDXU9m/3ThkA96pbVXRsD+2hs8TnT0MJyYNIi+N9LzgtCYtVdcKSf07cK3J3V0
+      VFWEzkpcpZPgjs62pBJ8LiCRq1fRn4wgqKrzU5ref61btOK6d8XW9GtCDRCEOhDY
+      /AC9qLTkake1DRV4dVkXTobzMJwSqdcsbw2kViQcQ1cn4IeCL4TihJddhCQ+ODtr
+      PBlzwkEF0X1w+DC3pycFEKFFZZJ1F5vLIiGVWdMqlVXNJXEiXZoxEW4KkHYhJ8sn
+      5apXWavlAgMBAAECggEAEGsb31PcAaM0PX9yZDL22x2aM9oDcd4g3d8u97Bf0gZn
+      gMvb3Gqmt+Sx+S4H1wGrPgAjOt9qEEiYiYKJF6pfwrFmRwSxEZBBRdY1ZG5N1L0Z
+      eVitjfLPzbZ27rMhNb5zmxK7o2vRnxmHYuYM7rshSoQsoC4JidISCKP/jGAaZyIn
+      UaD8QoORaL29BzLUctYPL9d4426OTCC1Yrd8Amf+VX7Mp/4kPFmUdU60a3qokPjX
+      3qBkmzdUQXmoD3eFIaH0nIwYUuZ6YEeYaKb1mSW6oSL/OwORfvi6764TWuIQIpx4
+      C5ZG5OMcDYiT7d7V1GLi2gTMeWn7kD06eiBEOjpmeQKBgQDYmwALhKTOsfncnF8i
+      bZ2aeUU5WaQZUJldamMWBre8KdJZW/qLemRLniMu2O0QuBsOZ/8w/tKwBLvNv3Ep
+      1jLqQaEEA5xiyhANX9VroLVFf4Xv2MTz9Yjf1QD49bWao7uBx+9Xf7a6mgnibNM9
+      /rS683gkgZSiICBpdK9bZ9G2LQKBgQDLSVOhsX7e0mU67um7CO5X2kQU3fzB7wgK
+      HmzvwKZmt+hY9YwcKD6gpRpfXnfM4rMrssdIcRg3tXExEm7z4ZymzYGffB/ejzfQ
+      kVhoRcNcs0DeGTyOl1MfchGEm7Q5JKnGq/1qzOMhtHV/U+PtIe6dTFMdrZcrmXZ/
+      WBFu3ZTXmQKBgQCAhK8pJmG29iifefSEc++QKSYmmgZgss7ce3QhLIk1zsatGIL2
+      4P7DUyfi8vjt856yFIh4pKmToKthr5ZQUXRSQ/Bqdk4C24tctCDoRClp+/kXT1HE
+      wkmdLT/vd7Jx93YY0e0zyGY+H4l/3DwWS5smVbFST8RF0bQJfh9Rp67pXQKBgQCu
+      D4wXb/Z07euVqYniBwSlnpMa1vScTYIxv9mA9BDG9QNyYFVmqqLtRFEvhaDIgvft
+      G7f89DFLSgWwgdsU4YITZPVvTIWxOCoPYNQ0/D8J+cY6JZuvcCzRSQds5zFKmHTy
+      UsO7FdIJQw40Ru1rVtmMQBUO3VsKDu3indLXfcz7SQKBgH4FWg0cl6zYmdrM1yYq
+      bTHaBPj8NZpudouZW+daP4lIZIa4rgxBbecrEfSmlD1drNkBMK5bg3Av+My5RsyC
+      PqMdZ5qoi/dqEYWG6A98C/ME4XM5zxHmLdXJo92mnUcvRppv+2BEe6hfHLc9Z0qG
+      toYt879jOSa0IWU1TcyTIykZ
+      -----END PRIVATE KEY-----
+  user:
+    service-url: ${USER_SERVICE_URL:http://100.84.68.115:18082}
 
 logging:
   level:

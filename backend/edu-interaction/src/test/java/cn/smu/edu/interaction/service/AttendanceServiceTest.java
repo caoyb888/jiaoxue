@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -39,6 +40,7 @@ class AttendanceServiceTest {
     @Mock private ListOperations<String, String> listOps;
     @SuppressWarnings("rawtypes")
     @Mock private RBloomFilter bloomFilter;
+    @Mock private KafkaTemplate<String, Object> kafkaTemplate;
     @InjectMocks private AttendanceServiceImpl attendanceService;
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());

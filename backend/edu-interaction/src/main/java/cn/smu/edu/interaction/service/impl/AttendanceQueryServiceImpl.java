@@ -4,7 +4,9 @@ import cn.smu.edu.interaction.domain.dto.AttendModifyDTO;
 import cn.smu.edu.interaction.domain.entity.Attendance;
 import cn.smu.edu.interaction.domain.vo.AttendanceItemVO;
 import cn.smu.edu.interaction.domain.vo.AttendanceListVO;
+import cn.smu.edu.interaction.domain.vo.StudentBriefVO;
 import cn.smu.edu.interaction.repository.AttendanceMapper;
+import cn.smu.edu.interaction.repository.StudentInfoMapper;
 import cn.smu.edu.interaction.service.AttendanceQueryService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -31,6 +33,7 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
     );
 
     private final AttendanceMapper attendanceMapper;
+    private final StudentInfoMapper studentInfoMapper;
 
     @Override
     public AttendanceListVO listByLesson(Long lessonId) {
@@ -40,10 +43,16 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
                         .orderByAsc(Attendance::getAttendedAt)
         );
 
+        // 批量解析真实姓名（读共享库 sys_user）
+        Map<Long, StudentBriefVO> nameMap = resolveNames(
+                records.stream().map(Attendance::getStudentId).distinct().collect(Collectors.toList()));
+
         List<AttendanceItemVO> items = records.stream().map(att -> {
             AttendanceItemVO item = new AttendanceItemVO();
             item.setStudentId(att.getStudentId());
-            item.setStudentName("学生" + att.getStudentId()); // 可通过 Feign 调用 edu-user 服务获取真实姓名
+            StudentBriefVO brief = nameMap.get(att.getStudentId());
+            item.setStudentName(brief != null ? brief.getRealName() : "学生" + att.getStudentId());
+            item.setStudentNo(brief != null ? brief.getStudentNo() : null);
             item.setStatus(att.getStatus());
             item.setStatusLabel(STATUS_LABEL.getOrDefault(att.getStatus(), "未知"));
             item.setMethod(att.getMethod());
@@ -63,6 +72,12 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
         vo.setAttendRate(totalStudents > 0 ? (double) attendedCount / totalStudents * 100 : 0.0);
         vo.setItems(items);
         return vo;
+    }
+
+    private Map<Long, StudentBriefVO> resolveNames(List<Long> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return studentInfoMapper.selectByIds(ids).stream()
+                .collect(Collectors.toMap(StudentBriefVO::getId, b -> b, (a, b) -> a));
     }
 
     @Override

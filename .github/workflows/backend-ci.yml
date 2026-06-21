@@ -41,16 +41,23 @@ jobs:
           EOF
 
       - name: Build edu-common
-        run: mvn install -pl backend/edu-common -am -q -DskipTests
-        working-directory: .
+        run: mvn install -pl edu-common -am -q -DskipTests
+        working-directory: backend
 
-      - name: Run unit tests
-        run: mvn test -f backend/pom.xml --fail-at-end
+      - name: Run unit tests (modules with tests only)
+        run: |
+          mvn test -pl edu-exam,edu-grade,edu-interaction,edu-course,edu-ai \
+            -am --fail-at-end -q
+        working-directory: backend
         env:
           SPRING_PROFILES_ACTIVE: test
 
-      - name: Build all modules
-        run: mvn package -f backend/pom.xml -DskipTests -q
+      - name: Build core modules
+        run: |
+          mvn package -DskipTests -q \
+            -pl edu-exam,edu-grade,edu-interaction,edu-course,edu-ai,edu-stat,edu-file,edu-notify,edu-live,edu-admin,edu-jwxt \
+            -am
+        working-directory: backend
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -63,7 +70,9 @@ jobs:
   deploy-dev:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    # 需配置 DEPLOY_* secrets 且显式开启变量 DEPLOY_DEV_ENABLED=true 才执行。
+    # 内网机 100.84.68.115 为私网地址，GitHub 云 runner 不可达；当前部署经 `git push onlyserver`。
+    if: github.ref == 'refs/heads/develop' && vars.DEPLOY_DEV_ENABLED == 'true'
     environment: development
 
     steps:

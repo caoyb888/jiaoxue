@@ -119,33 +119,37 @@ export interface ApiPageResult<T> {
 
 export const courseApi = {
   list: (params: CourseQueryParams) =>
-    http.get<CourseQueryParams, { data: ApiPageResult<CourseListItemVO> }>('/v1/course/list', { params }),
+    http.get<CourseQueryParams, ApiPageResult<CourseListItemVO>>('/v1/course/list', { params }),
 
   myClasses: (params?: { semester?: string; status?: number }) =>
-    http.get<typeof params, { data: ClassRoomVO[] }>('/v1/course/class/my', { params }),
+    http.get<typeof params, ClassRoomVO[]>('/v1/course/class/my', { params }),
 
   startLesson: (dto: LessonStartDTO) =>
-    http.post<LessonStartDTO, { data: LessonStartVO }>('/v1/course/lesson/start', dto),
+    http.post<LessonStartDTO, LessonStartVO>('/v1/course/lesson/start', dto),
 
   endLesson: (lessonId: number) =>
-    http.post<void, { data: LessonEndVO }>(`/v1/course/lesson/${lessonId}/end`),
+    http.post<void, LessonEndVO>(`/v1/course/lesson/${lessonId}/end`),
 
   getLessonDetail: (lessonId: number) =>
-    http.get<void, { data: LessonDetailVO }>(`/v1/course/lesson/${lessonId}`),
+    http.get<void, LessonDetailVO>(`/v1/course/lesson/${lessonId}`),
+
+  // 课堂列表（按班级/状态过滤）。status: 0-未开始 1-进行中 2-已结束
+  listLessons: (params: { classId: number; status?: number; page?: number; size?: number }) =>
+    http.get<typeof params, ApiPageResult<LessonDetailVO>>('/v1/course/lesson/list', { params }),
 
   updateSlide: (lessonId: number, slideNo: number) =>
-    http.post<{ slideNo: number }, { data: void }>(`/v1/course/lesson/${lessonId}/slide`, { slideNo }),
+    http.post<{ slideNo: number }, void>(`/v1/course/lesson/${lessonId}/slide`, { slideNo }),
 }
 
 export const materialApi = {
   applyUpload: (dto: { fileName: string; fileType: string; fileSizeKb: number }) =>
-    http.post<typeof dto, { data: MaterialUploadVO }>('/v1/course/material/upload', dto),
+    http.post<typeof dto, MaterialUploadVO>('/v1/course/material/upload', dto),
 
   completeUpload: (dto: { uploadId: string; title: string }) =>
-    http.post<typeof dto, { data: MaterialCompleteVO }>('/v1/course/material/upload/complete', dto),
+    http.post<typeof dto, MaterialCompleteVO>('/v1/course/material/upload/complete', dto),
 
   list: (params?: { keyword?: string; page?: number; size?: number }) =>
-    http.get<typeof params, { data: ApiPageResult<MaterialListItemVO> }>('/v1/course/material/list', { params }),
+    http.get<typeof params, ApiPageResult<MaterialListItemVO>>('/v1/course/material/list', { params }),
 }
 
 // ─── React Query hooks ────────────────────────────────────────────────────────
@@ -153,7 +157,7 @@ export const materialApi = {
 export function useCourseList(params: CourseQueryParams) {
   return useQuery({
     queryKey: ['courses', params],
-    queryFn: () => courseApi.list(params).then((r) => r.data),
+    queryFn: () => courseApi.list(params),
     staleTime: 30_000,
   })
 }
@@ -161,7 +165,7 @@ export function useCourseList(params: CourseQueryParams) {
 export function useMyClasses(params?: { semester?: string; status?: number }) {
   return useQuery({
     queryKey: ['myClasses', params],
-    queryFn: () => courseApi.myClasses(params).then((r) => r.data),
+    queryFn: () => courseApi.myClasses(params),
     staleTime: 60_000,
   })
 }
@@ -169,16 +173,27 @@ export function useMyClasses(params?: { semester?: string; status?: number }) {
 export function useLessonDetail(lessonId: number | null) {
   return useQuery({
     queryKey: ['lesson', lessonId],
-    queryFn: () => courseApi.getLessonDetail(lessonId!).then((r) => r.data),
+    queryFn: () => courseApi.getLessonDetail(lessonId!),
     enabled: lessonId !== null,
     staleTime: 5_000,
+  })
+}
+
+/** 取某班级当前进行中的课堂（status=1），无则返回 null。供学生进入签到/答题。 */
+export function useActiveLesson(classId: number | null) {
+  return useQuery({
+    queryKey: ['activeLesson', classId],
+    queryFn: () => courseApi.listLessons({ classId: classId!, status: 1, size: 1 }),
+    enabled: classId !== null,
+    select: (page): LessonDetailVO | null => page.list[0] ?? null,
+    staleTime: 10_000,
   })
 }
 
 export function useStartLesson() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dto: LessonStartDTO) => courseApi.startLesson(dto).then((r) => r.data),
+    mutationFn: (dto: LessonStartDTO) => courseApi.startLesson(dto),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['myClasses'] }),
   })
 }
@@ -186,7 +201,7 @@ export function useStartLesson() {
 export function useEndLesson() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (lessonId: number) => courseApi.endLesson(lessonId).then((r) => r.data),
+    mutationFn: (lessonId: number) => courseApi.endLesson(lessonId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['myClasses'] }),
   })
 }
@@ -194,7 +209,7 @@ export function useEndLesson() {
 export function useMaterialList(params?: { keyword?: string; page?: number }) {
   return useQuery({
     queryKey: ['materials', params],
-    queryFn: () => materialApi.list(params).then((r) => r.data),
+    queryFn: () => materialApi.list(params),
     staleTime: 30_000,
   })
 }

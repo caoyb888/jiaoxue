@@ -9,6 +9,7 @@ import cn.smu.edu.exam.domain.entity.ExamPaper;
 import cn.smu.edu.exam.domain.entity.ExamPublish;
 import cn.smu.edu.exam.domain.vo.ExamPublishVO;
 import cn.smu.edu.exam.repository.*;
+import cn.smu.edu.exam.domain.vo.StudentExamListVO;
 import cn.smu.edu.exam.service.impl.ExamPublishServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +35,7 @@ class ExamPublishServiceTest {
     @Mock private ExamPaperQuestionMapper paperQuestionMapper;
     @Mock private QuestionMapper questionMapper;
     @Mock private QuestionOptionMapper questionOptionMapper;
+    @Mock private ExamMonitorMapper monitorMapper;
     @Mock private ExamPublishConverter converter;
     @Mock private QuestionConverter questionConverter;
     @Mock private BCryptPasswordEncoder passwordEncoder;
@@ -274,5 +277,69 @@ class ExamPublishServiceTest {
 
         var vo = service.getStudentView(PUBLISH_ID, 99L, null);
         assertThat(vo.getAnswerVisible()).isTrue();
+    }
+
+    // ── listForStudent ────────────────────────────────────────────────────
+
+    @Test
+    void listForStudent_shouldMarkEnteredTrue_whenMonitorRecordExists() {
+        ExamPublish pub = buildPublish(1, ACTIVE_START, ACTIVE_END, null);
+        pub.setClassId(200L);
+        when(publishMapper.selectByClassId(200L)).thenReturn(java.util.List.of(pub));
+
+        cn.smu.edu.exam.domain.entity.ExamMonitor monitor = new cn.smu.edu.exam.domain.entity.ExamMonitor();
+        monitor.setPublishId(PUBLISH_ID);
+        monitor.setStudentId(99L);
+        monitor.setSessionStatus("ANSWERING");
+        when(monitorMapper.selectList(any())).thenReturn(java.util.List.of(monitor));
+
+        List<StudentExamListVO> result = service.listForStudent(200L, 99L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEntered()).isTrue();
+        assertThat(result.get(0).getSubmitted()).isFalse();
+    }
+
+    @Test
+    void listForStudent_shouldMarkSubmittedTrue_whenSessionStatusIsSubmitted() {
+        ExamPublish pub = buildPublish(2, PAST_START, PAST_END, null);
+        pub.setClassId(200L);
+        when(publishMapper.selectByClassId(200L)).thenReturn(java.util.List.of(pub));
+
+        cn.smu.edu.exam.domain.entity.ExamMonitor monitor = new cn.smu.edu.exam.domain.entity.ExamMonitor();
+        monitor.setPublishId(PUBLISH_ID);
+        monitor.setStudentId(99L);
+        monitor.setSessionStatus("SUBMITTED");
+        when(monitorMapper.selectList(any())).thenReturn(java.util.List.of(monitor));
+
+        List<StudentExamListVO> result = service.listForStudent(200L, 99L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getSubmitted()).isTrue();
+    }
+
+    // ── syncExamStatus ─────────────────────────────────────────────────────
+
+    @Test
+    void syncExamStatus_shouldUpdateStatus_whenComputedStatusDiffers() {
+        ExamPublish pub = buildPublish(0, ACTIVE_START, ACTIVE_END, null); // DB中=0，实际=1
+        when(publishMapper.selectActiveOrPending()).thenReturn(java.util.List.of(pub));
+
+        service.syncExamStatus();
+
+        // 应调用 updateById 更新状态到 1
+        ArgumentCaptor<ExamPublish> cap = ArgumentCaptor.forClass(ExamPublish.class);
+        verify(publishMapper).updateById(cap.capture());
+        assertThat(cap.getValue().getStatus()).isEqualTo(1);
+    }
+
+    @Test
+    void syncExamStatus_shouldNotUpdate_whenStatusMatches() {
+        ExamPublish pub = buildPublish(1, ACTIVE_START, ACTIVE_END, null); // DB=1，实际也=1
+        when(publishMapper.selectActiveOrPending()).thenReturn(java.util.List.of(pub));
+
+        service.syncExamStatus();
+
+        verify(publishMapper, never()).updateById((ExamPublish) any());
     }
 }

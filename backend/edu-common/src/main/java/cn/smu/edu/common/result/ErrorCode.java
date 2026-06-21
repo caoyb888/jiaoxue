@@ -47,6 +47,8 @@ public enum ErrorCode {
     EXAM_PASSWORD_WRONG(100504, "考试密码错误"),
     EXAM_ALREADY_SUBMITTED(100505, "已提交，请勿重复提交"),
     FACE_VERIFY_FAIL(100506, "人脸核验未通过"),
+    EXAM_NOT_ACTIVE(100507, "考试未开始或已结束"),
+    EXAM_SESSION_NOT_FOUND(100508, "请先进入考试"),
 
     // 成绩模块 1006xx
     GRADE_RULE_WEIGHT_ERROR(100601, "成绩权重之和必须等于100"),

@@ -4,6 +4,9 @@ import cn.smu.edu.common.result.PageResult;
 import cn.smu.edu.exam.domain.dto.*;
 import cn.smu.edu.exam.domain.vo.ExamPublishStudentVO;
 import cn.smu.edu.exam.domain.vo.ExamPublishVO;
+import cn.smu.edu.exam.domain.vo.StudentExamListVO;
+
+import java.util.List;
 
 public interface ExamPublishService {
 
@@ -23,4 +26,10 @@ public interface ExamPublishService {
 
     /** 验证考试密码（独立接口，返回临时令牌或 true/false） */
     boolean verifyPassword(Long publishId, String password);
+
+    /** 学生端：查询指定班级的考试列表（含是否已进入/已交卷状态） */
+    List<StudentExamListVO> listForStudent(Long classId, Long studentId);
+
+    /** XXL-Job：批量维护 exam_publish.status 冗余字段（0/1/2状态同步） */
+    void syncExamStatus();
 }

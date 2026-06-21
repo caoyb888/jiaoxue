@@ -1,0 +1,14 @@
+{
+  "name": "edu-e2e",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:health": "playwright test tests/05-api-health.spec.ts",
+    "test:auth": "playwright test tests/01-auth.spec.ts",
+    "report": "playwright show-report /tmp/playwright-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "typescript": "^5.0.0"
+  }
+}

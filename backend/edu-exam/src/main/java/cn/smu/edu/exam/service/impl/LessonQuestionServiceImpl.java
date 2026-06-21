@@ -5,11 +5,15 @@ import cn.smu.edu.common.exception.BizException;
 import cn.smu.edu.common.result.ErrorCode;
 import cn.smu.edu.common.constant.KafkaTopic;
 import cn.smu.edu.exam.domain.dto.PublishLessonQuestionDTO;
+import cn.smu.edu.exam.domain.dto.SubmitLessonAnswerDTO;
 import cn.smu.edu.exam.domain.entity.LessonQuestion;
+import cn.smu.edu.exam.domain.entity.LessonQuestionAnswer;
 import cn.smu.edu.exam.domain.entity.Question;
 import cn.smu.edu.exam.domain.entity.QuestionOption;
+import cn.smu.edu.exam.domain.vo.LessonAnswerResultVO;
 import cn.smu.edu.exam.domain.vo.LessonQuestionVO;
 import cn.smu.edu.exam.domain.vo.QuestionOptionVO;
+import cn.smu.edu.exam.repository.LessonQuestionAnswerMapper;
 import cn.smu.edu.exam.repository.LessonQuestionMapper;
 import cn.smu.edu.exam.repository.QuestionMapper;
 import cn.smu.edu.exam.repository.QuestionOptionMapper;
@@ -32,7 +36,13 @@ public class LessonQuestionServiceImpl implements LessonQuestionService {
     private static final int STATUS_OPEN   = 0;
     private static final int STATUS_CLOSED = 1;
 
+    private static final java.util.Set<String> TRUE_VALUES =
+            java.util.Set.of("TRUE", "T", "1", "对", "是", "正确", "√");
+    private static final java.util.Set<String> FALSE_VALUES =
+            java.util.Set.of("FALSE", "F", "0", "错", "否", "错误", "×");
+
     private final LessonQuestionMapper lessonQuestionMapper;
+    private final LessonQuestionAnswerMapper lessonQuestionAnswerMapper;
     private final QuestionMapper questionMapper;
     private final QuestionOptionMapper questionOptionMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -145,6 +155,86 @@ public class LessonQuestionServiceImpl implements LessonQuestionService {
         vo.setSortOrder(o.getSortOrder());
         vo.setIsCorrect(null); // 课堂发题时隐藏正确答案
         return vo;
+    }
+
+    @Override
+    @Transactional
+    public LessonAnswerResultVO submitAnswer(Long lessonId, Long studentId, SubmitLessonAnswerDTO dto) {
+        LessonQuestion lq = lessonQuestionMapper.selectById(dto.getLessonQuestionId());
+        if (lq == null || !lq.getLessonId().equals(lessonId)) {
+            throw new BizException(ErrorCode.NOT_FOUND);
+        }
+        if (lq.getStatus() != null && lq.getStatus() == STATUS_CLOSED) {
+            throw new BizException(400, "题目已关闭，无法作答");
+        }
+        Question question = questionMapper.selectById(lq.getQuestionId());
+        if (question == null) {
+            throw new BizException(ErrorCode.NOT_FOUND);
+        }
+
+        Boolean correct = gradeObjective(question.getType(), dto.getAnswer(), question.getAnswer());
+        Integer isCorrectVal = correct == null ? null : (correct ? 1 : 0);
+
+        // 幂等改答：同一学生对同一题再次提交则覆盖
+        LessonQuestionAnswer existing = lessonQuestionAnswerMapper.selectByLqAndStudent(lq.getId(), studentId);
+        if (existing != null) {
+            existing.setAnswerContent(dto.getAnswer());
+            existing.setIsCorrect(isCorrectVal);
+            existing.setSubmittedAt(LocalDateTime.now());
+            lessonQuestionAnswerMapper.updateById(existing);
+        } else {
+            LessonQuestionAnswer a = new LessonQuestionAnswer();
+            a.setLessonQuestionId(lq.getId());
+            a.setLessonId(lessonId);
+            a.setQuestionId(question.getId());
+            a.setStudentId(studentId);
+            a.setAnswerContent(dto.getAnswer());
+            a.setIsCorrect(isCorrectVal);
+            a.setSubmittedAt(LocalDateTime.now());
+            lessonQuestionAnswerMapper.insert(a);
+        }
+
+        log.info("随堂答题: lessonId={}, studentId={}, lqId={}, correct={}",
+                lessonId, studentId, lq.getId(), correct);
+
+        boolean objective = correct != null;
+        return LessonAnswerResultVO.builder()
+                .lessonQuestionId(lq.getId())
+                .questionType(question.getType())
+                .isCorrect(correct)
+                .correctAnswer(objective ? question.getAnswer() : null)
+                .analysis(question.getAnalysis())
+                .myAnswer(dto.getAnswer())
+                .build();
+    }
+
+    /** 客观题（单选/多选/判断）即时判对错；填空/主观/投票返回 null（不自动判定）。 */
+    private static Boolean gradeObjective(int type, String submitted, String correctAnswer) {
+        return switch (type) {
+            case 1 -> normalize(submitted).equals(normalize(correctAnswer));
+            case 2 -> toLabelSet(submitted).equals(toLabelSet(correctAnswer));
+            case 3 -> boolNormalize(submitted).equals(boolNormalize(correctAnswer));
+            default -> null; // 4-填空 5-主观 6-投票
+        };
+    }
+
+    private static String normalize(String v) {
+        return v == null ? "" : v.trim().toUpperCase().replace(" ", "");
+    }
+
+    private static java.util.Set<String> toLabelSet(String v) {
+        java.util.Set<String> set = new java.util.TreeSet<>();
+        for (String s : normalize(v).split(",")) {
+            if (!s.isEmpty()) set.add(s);
+        }
+        return set;
+    }
+
+    private static String boolNormalize(String v) {
+        String n = normalize(v);
+        if (TRUE_VALUES.contains(n)) return "TRUE";
+        if (FALSE_VALUES.contains(n)) return "FALSE";
+        return n;
     }
 
     private void broadcastQuestion(Long lessonId, Long teacherId, Object payload, String eventType) {

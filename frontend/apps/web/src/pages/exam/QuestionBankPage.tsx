@@ -38,7 +38,7 @@ export default function QuestionBankPage() {
         onSuccess: (res) => {
           setShowCreateBank(false)
           setBankFormName('')
-          setSelectedBankId(res.data?.id ?? null)
+          setSelectedBankId(res.id ?? null)
         },
       }
     )

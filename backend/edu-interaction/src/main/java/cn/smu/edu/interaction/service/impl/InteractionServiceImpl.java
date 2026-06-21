@@ -1,8 +1,11 @@
 package cn.smu.edu.interaction.service.impl;
 
+import cn.smu.edu.common.constant.KafkaTopic;
+import cn.smu.edu.common.event.TeachingEvent;
 import cn.smu.edu.interaction.domain.dto.*;
 import cn.smu.edu.interaction.domain.entity.*;
 import cn.smu.edu.interaction.domain.vo.RollCallVO;
+import cn.smu.edu.interaction.domain.vo.StudentBriefVO;
 import cn.smu.edu.interaction.repository.*;
 import cn.smu.edu.interaction.service.AttendanceQueryService;
 import cn.smu.edu.interaction.service.InteractionService;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,7 @@ public class InteractionServiceImpl implements InteractionService {
     private final SlideFeedbackMapper slideFeedbackMapper;
     private final ClassScoreMapper classScoreMapper;
     private final AttendanceMapper attendanceMapper;
+    private final StudentInfoMapper studentInfoMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -44,13 +49,12 @@ public class InteractionServiceImpl implements InteractionService {
         barrage.setIsBlocked(0);
         barrageMapper.insert(barrage);
 
-        // Kafka 广播通知（edu-notify 消费后推 WebSocket）
-        kafkaTemplate.send("edu.teaching.events", Map.of(
-                "type", "BARRAGE",
-                "lessonId", lessonId,
+        // Kafka 广播通知（edu-notify 消费后推 STOMP /topic/lesson/{id}/barrage）
+        TeachingEvent event = new TeachingEvent("BARRAGE", lessonId, studentId, Map.of(
                 "content", dto.getContent(),
-                "style", dto.getStyle()
+                "style", dto.getStyle() == null ? "roll" : dto.getStyle()
         ));
+        kafkaTemplate.send(KafkaTopic.TEACHING_EVENTS, lessonId.toString(), event);
 
         log.info("弹幕发送: lessonId={}, studentId={}", lessonId, studentId);
     }
@@ -83,6 +87,7 @@ public class InteractionServiceImpl implements InteractionService {
             return RollCallVO.builder()
                     .lessonId(lessonId)
                     .studentIds(List.of())
+                    .students(List.of())
                     .style(dto.getStyle())
                     .message("没有可点名的学生")
                     .build();
@@ -103,21 +108,30 @@ public class InteractionServiceImpl implements InteractionService {
         } catch (Exception e) {
             record.setStudentIds("[]");
         }
+        // called_at 为 NOT NULL，且全局 MetaObjectHandler 未覆盖该字段，显式赋值兜底
+        record.setCalledAt(LocalDateTime.now());
         randomCallMapper.insert(record);
 
-        // Kafka 广播
-        kafkaTemplate.send("edu.teaching.events", Map.of(
-                "type", "ROLL_CALL",
-                "lessonId", lessonId,
+        // Kafka 广播（edu-notify 消费后推 STOMP /topic/lesson/{id}/roll-call）
+        TeachingEvent event = new TeachingEvent("ROLL_CALL", lessonId, teacherId, Map.of(
                 "studentIds", picked,
-                "style", dto.getStyle()
+                "style", dto.getStyle() == null ? "random" : dto.getStyle()
         ));
+        kafkaTemplate.send(KafkaTopic.TEACHING_EVENTS, lessonId.toString(), event);
 
         log.info("随机点名: lessonId={}, picked={}, style={}", lessonId, picked, dto.getStyle());
+
+        // 解析被点学生姓名（按 picked 顺序）
+        Map<Long, StudentBriefVO> nameMap = studentInfoMapper.selectByIds(picked).stream()
+                .collect(Collectors.toMap(StudentBriefVO::getId, b -> b, (a, b) -> a));
+        List<StudentBriefVO> students = picked.stream()
+                .map(uid -> nameMap.getOrDefault(uid, new StudentBriefVO(uid, "学生" + uid, null)))
+                .collect(Collectors.toList());
 
         return RollCallVO.builder()
                 .lessonId(lessonId)
                 .studentIds(new ArrayList<>(picked))
+                .students(students)
                 .style(dto.getStyle())
                 .message("点名成功，共 " + picked.size() + " 人")
                 .build();
