@@ -4,6 +4,8 @@ import cn.smu.edu.common.aop.OperationLog;
 import cn.smu.edu.common.result.Result;
 import cn.smu.edu.common.util.UserContext;
 import cn.smu.edu.exam.domain.dto.PublishLessonQuestionDTO;
+import cn.smu.edu.exam.domain.dto.SubmitLessonAnswerDTO;
+import cn.smu.edu.exam.domain.vo.LessonAnswerResultVO;
 import cn.smu.edu.exam.domain.vo.LessonQuestionVO;
 import cn.smu.edu.exam.service.LessonQuestionService;
 import jakarta.validation.Valid;
@@ -49,5 +51,14 @@ public class LessonQuestionController {
     @GetMapping("/{lessonId}/questions/history")
     public Result<List<LessonQuestionVO>> getHistory(@PathVariable Long lessonId) {
         return Result.ok(lessonQuestionService.getHistory(lessonId));
+    }
+
+    /** 学生提交随堂答题（客观题即时判对错） */
+    @OperationLog(module = "exam", operation = "随堂答题")
+    @PostMapping("/{lessonId}/answers")
+    public Result<LessonAnswerResultVO> submitAnswer(
+            @PathVariable Long lessonId,
+            @Valid @RequestBody SubmitLessonAnswerDTO dto) {
+        return Result.ok(lessonQuestionService.submitAnswer(lessonId, UserContext.getUserId(), dto));
     }
 }

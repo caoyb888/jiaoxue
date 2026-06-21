@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { interactionApi, type BarrageDTO } from '@edu/api/modules/interaction'
+import { useLessonTopic } from '../../hooks/useLessonTopic'
 
 interface BarrageItem {
   id: string
@@ -10,10 +10,13 @@ interface BarrageItem {
   color: string
   track: number
   startX: number
+  /** 创建时间（performance.now()），用于 top/bottom 静止弹幕的 TTL 回收 */
+  createdAt: number
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444']
 const ROLL_SPEED = 120 // px/s
+const TOP_BOTTOM_TTL = 3000 // top/bottom 弹幕静止展示时长（ms）
 
 /** 弹幕展示层 + 发送区（S3-13，三端适配） */
 export default function BarragePage() {
@@ -56,13 +59,13 @@ export default function BarragePage() {
           ctx.fillText(item.content, item.startX, item.track * 28 + 24)
           return item.startX > -ctx.measureText(item.content).width
         } else {
-          // top/bottom 静止显示 3 秒（通过 TTL 控制，此处简化）
+          // top/bottom 静止显示 TOP_BOTTOM_TTL 毫秒后回收（避免无限堆积）
           const y = item.style === 'top'
             ? item.track * 28 + 24
             : canvas.height - item.track * 28 - 10
           ctx.fillStyle = item.color
           ctx.fillText(item.content, canvas.width / 2 - ctx.measureText(item.content).width / 2, y)
-          return true
+          return timestamp - item.createdAt < TOP_BOTTOM_TTL
         }
       })
 
@@ -87,15 +90,20 @@ export default function BarragePage() {
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       track: Math.floor(Math.random() * Math.max(1, tracks - 1)) + 1,
       startX: canvas.width + 20,
+      createdAt: performance.now(),
     })
   }
+
+  // 订阅全班弹幕广播：所有人（含发送者）经 WebSocket 收到后统一上屏，避免本地回显与广播重复
+  useLessonTopic<{ content: string; style?: BarrageDTO['style'] }>(id, 'barrage', (msg) => {
+    addBarrage(msg.content, msg.style ?? 'roll')
+  })
 
   const handleSend = async () => {
     if (!input.trim() || sending) return
     setSending(true)
     try {
       await interactionApi.sendBarrage(id, { content: input.trim(), style })
-      addBarrage(input.trim(), style)
       setInput('')
     } finally {
       setSending(false)

@@ -49,7 +49,7 @@ export default function MaterialManagePage() {
 
     try {
       // Step 1: 申请预签名上传 URL
-      const { data: ticket } = await materialApi.applyUpload({
+      const ticket = await materialApi.applyUpload({
         fileName: file.name,
         fileType: ext,
         fileSizeKb: Math.ceil(file.size / 1024),

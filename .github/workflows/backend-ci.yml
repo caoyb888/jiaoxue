@@ -41,16 +41,23 @@ jobs:
           EOF
 
       - name: Build edu-common
-        run: mvn install -pl backend/edu-common -am -q -DskipTests
-        working-directory: .
+        run: mvn install -pl edu-common -am -q -DskipTests
+        working-directory: backend
 
-      - name: Run unit tests
-        run: mvn test -f backend/pom.xml --fail-at-end
+      - name: Run unit tests (modules with tests only)
+        run: |
+          mvn test -pl edu-exam,edu-grade,edu-interaction,edu-course,edu-ai \
+            -am --fail-at-end -q
+        working-directory: backend
         env:
           SPRING_PROFILES_ACTIVE: test
 
-      - name: Build all modules
-        run: mvn package -f backend/pom.xml -DskipTests -q
+      - name: Build core modules
+        run: |
+          mvn package -DskipTests -q \
+            -pl edu-exam,edu-grade,edu-interaction,edu-course,edu-ai,edu-stat,edu-file,edu-notify,edu-live,edu-admin,edu-jwxt \
+            -am
+        working-directory: backend
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

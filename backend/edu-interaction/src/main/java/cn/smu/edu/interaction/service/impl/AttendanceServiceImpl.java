@@ -1,6 +1,8 @@
 package cn.smu.edu.interaction.service.impl;
 
+import cn.smu.edu.common.constant.KafkaTopic;
 import cn.smu.edu.common.constant.RedisKey;
+import cn.smu.edu.common.event.TeachingEvent;
 import cn.smu.edu.common.exception.BizException;
 import cn.smu.edu.common.result.ErrorCode;
 import cn.smu.edu.interaction.domain.dto.AttendDTO;
@@ -17,11 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -41,6 +45,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Override
     public AttendResultVO attend(Long lessonId, Long studentId, AttendDTO dto) {
@@ -91,6 +96,11 @@ public class AttendanceServiceImpl implements AttendanceService {
         // 4. 计数器 +1
         String countKey = String.format(RedisKey.ATTEND_COUNT, lessonId);
         Long count = redisTemplate.opsForValue().increment(countKey);
+
+        // 4.1 实时广播签到人数（Kafka → edu-notify → STOMP /topic/lesson/{id}/attend）
+        TeachingEvent countEvent = new TeachingEvent("ATTEND_COUNT", lessonId, null,
+                Map.of("count", count != null ? count : 0L));
+        kafkaTemplate.send(KafkaTopic.TEACHING_EVENTS, lessonId.toString(), countEvent);
 
         // 5. 签到项推入 Redis List 队列（异步落库）
         String queueKey = String.format(RedisKey.ATTEND_QUEUE, lessonId);

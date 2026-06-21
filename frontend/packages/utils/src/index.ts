@@ -1,3 +1,7 @@
+// process 由 Taro 构建期注入；Web(Vite)端运行时可能不存在，故用 typeof 守卫。
+// 此处本地声明类型，避免为一个变量引入整套 @types/node 的 node 全局。
+declare const process: { env?: Record<string, string | undefined> } | undefined
+
 // 平台判断（Taro 条件编译规范 §6.5 — 所有平台判断必须从此文件引用）
 export const isWeapp = (typeof process !== 'undefined' && process.env?.['TARO_ENV'] === 'weapp')
 export const isWeb = !isWeapp

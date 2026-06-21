@@ -4,7 +4,7 @@
 **文档版本：** V1.0  
 **编制日期：** 2026-06-16  
 **对应技术方案：** V2.0 | 对应数据库设计：V2.0 | 对应 API 规范：V1.0  
-**总周期：** 18 周 | **团队规模：** 10 人
+**总周期：** 18 周（含 Sprint 0 启动前准备）| **团队规模：** 10 人
 
 ---
 
@@ -45,11 +45,81 @@
 
 ---
 
+## Sprint 0 — 基础环境构建（第 0 周，项目启动前）
+
+**目标：** 在第一行业务代码进入 Sprint 1 之前，完成双机开发环境搭建、所有中间件部署与验证、Git 代码同步机制建立、数据库结构初始化，确保团队 Day 1 可直接开发。
+
+**里程碑前置条件：** 无（最早阶段）  
+**本阶段产出：** Sprint 1 可立即启动；全部中间件健康；数据库结构与种子数据就绪；代码推送后内网机自动同步
+
+**⚠️ 注意：** 本阶段以 OPS + BE-1 为主，其余成员同期完成本机开发工具安装与 SSH 配置。
+
+### 双机环境说明
+
+本项目采用**本机编写代码、内网机运行程序**的分离模式。
+
+| 角色 | 机器 | 说明 |
+|------|------|------|
+| 本机（开发） | 当前机器 | 编写代码、git 操作、IDE、前端热更新 |
+| 内网机（运行） | `onlyserver`（100.84.68.115，用户 `xintong`，目录 `~/smart-edu`） | Docker 中间件、后端微服务、前端构建产物 |
+
+### 端口冲突规避（内网机已有 Nextcloud 占用以下端口）
+
+| 中间件 | 标准端口 | 开发环境端口 | 冲突原因 |
+|--------|----------|------------|---------|
+| MySQL | 3306 | **13306** | nextcloud-db 占用 3306 |
+| Redis | 6379 | **16379** | nextcloud-redis 占用 6379 |
+| edu-gateway | 8080 | **18080** | onlyoffice 占用 8080 |
+| edu-stat | 8088 | **18088** | nextcloud-app 占用 8088 |
+| Kafka | 9092 | **19092** | — |
+| Nacos | 8848 | **18848** | — |
+| MongoDB | 27017 | **17017** | — |
+| MinIO API | 9000 | **19000** | — |
+| Elasticsearch | 9200 | **19200** | — |
+| ClickHouse HTTP | 8123 | **18123** | — |
+| XXL-Job | 8160 | **18160** | — |
+
+> 规律：edu 项目中间件端口统一在原端口前加 `1` 前缀，微服务端口 8081–8093 无冲突保持不变。
+
+### Story 列表
+
+| Story ID | Story 描述 | 负责人 | SP | 优先级 |
+|----------|-----------|--------|-----|--------|
+| S0-01 | 内网机安装 Maven（`sudo apt-get install -y maven`），验证 `mvn --version` 输出 3.x | OPS | 1 | P0 |
+| S0-02 | 本机配置 SSH 免密登录（`ssh-copy-id onlyserver`），配置 `~/.ssh/config` 别名 `onlyserver`，验证无密码登入 | OPS | 1 | P0 |
+| S0-03 | 本机 Git 仓库初始化（`git init`），内网机目标目录执行 `git init && git config receive.denyCurrentBranch updateInstead`，本机添加远端 `git remote add onlyserver onlyserver:~/smart-edu`，完成首次 `git push` 并确认内网机工作目录文件已同步 | BE-1 | 1 | P0 |
+| S0-04 | 内网机部署 Docker Compose 开发中间件（`infra/docker-compose.dev.yml`），包含 MySQL/Redis/Kafka/Nacos/MongoDB/MinIO/ES/ClickHouse/XXL-Job 共 9 个组件，端口按上表规避冲突 | OPS | 3 | P0 |
+| S0-05 | 验证全部中间件健康：MySQL 可连接建库、Redis PING 返回 PONG、Nacos 控制台可登录、Kafka 可生产消费消息、MinIO 控制台可登录并创建 Bucket、ES 返回集群状态 green/yellow、ClickHouse `SELECT 1` 正常、XXL-Job 控制台可登录 | OPS + BE-1 | 2 | P0 |
+| S0-06 | 初始化 MySQL 业务库：执行 `docs/db/migrations/V1.0.0__init_schema.sql`（58 张业务表）与 `V1.0.1__init_audit_schema.sql`（审计库），执行种子数据脚本（admin/teacher01/student01 三个测试账号） | BE-1 | 1 | P0 |
+| S0-07 | Nacos dev 命名空间初始化：导入各微服务配置（数据库连接串使用内网机 IP+规避端口、Redis/Kafka/MongoDB 地址），验证 edu-auth standalone 启动后能从 Nacos 拉取配置 | OPS | 2 | P0 |
+| S0-08 | 初始化 MinIO Bucket（`edu-files`、`edu-exam-attach`、`edu-live-replay`、`edu-archive`），配置 CORS 允许前端直传，验证预签名 URL 上传 1MB 文件成功 | BE-4 | 1 | P1 |
+| S0-09 | 初始化 Elasticsearch 索引（执行 `docs/es/create_indices.sh`），创建 `edu_question`（ik_max_word）和 `edu_courseware` 两个索引，验证 mapping 正确 | BE-4 | 1 | P1 |
+| S0-10 | 初始化 ClickHouse 统计表（执行 `docs/db/clickhouse_schema.sql`），验证 `lesson_event_log`、`lesson_stat_daily`、`dept_teaching_stat` 三张表存在 | BE-4 | 1 | P1 |
+| S0-11 | 全员本机开发工具确认：JDK 21（Temurin）、Node.js 20、pnpm 10、IDE（IDEA/VSCode），通过 `java -version` / `node -v` / `pnpm -v` 截图汇总 | 全员 | 1 | P1 |
+| S0-12 | GitLab 仓库创建与分支保护：`main` / `develop` 受保护（禁止直接 push），注册 CI/CD Runner，`.gitlab-ci.yml` 骨架提交后流水线首次运行绿灯 | OPS | 2 | P1 |
+
+**Sprint 0 总计：** 17 SP（约 3–5 工作日，OPS+BE-1 主导）
+
+### 验收标准
+
+- [ ] `ssh onlyserver 'echo ok'` 在本机无密码输出 `ok`
+- [ ] `git push onlyserver feature/sprint5`（或当前分支）后，`ssh onlyserver 'ls ~/smart-edu'` 能看到 `backend/` `frontend/` `infra/` 等完整目录
+- [ ] `ssh onlyserver 'mvn --version'` 输出 Maven 3.x
+- [ ] `ssh onlyserver 'docker compose -f ~/smart-edu/infra/docker-compose.dev.yml ps'` → 9 个容器全部 `Up (healthy)`
+- [ ] `mysql -h 100.84.68.115 -P 13306 -u root -pedu_dev_2026 edu_db -e "SHOW TABLES;" | wc -l` 输出 ≥ 58
+- [ ] Nacos 控制台 `http://100.84.68.115:18848`（nacos/nacos）可登录，dev 命名空间下各服务配置条目可见
+- [ ] MinIO 控制台 `http://100.84.68.115:19000`（minioadmin/minioadmin）可登录，`edu-files` 等 Bucket 存在
+- [ ] XXL-Job 控制台 `http://100.84.68.115:18160`（admin/123456）可登录
+- [ ] ES：`curl http://100.84.68.115:19200/_cat/indices` 输出包含 `edu_question` 和 `edu_courseware`
+- [ ] edu-auth 服务可在内网机 standalone 启动（从 Nacos 拉取配置），`POST /api/v1/auth/login/phone` 测试账号登录返回 JWT
+
+---
+
 ## Sprint 1 — 基础框架（第 1–2 周）
 
 **目标：** 搭建全部微服务骨架、完成认证链路、用户/组织管理、等保基础架构、CI/CD 流水线上线。
 
-**里程碑前置条件：** 无（项目启动）  
+**里程碑前置条件：** S0 完成，所有中间件健康，Git 同步机制可用  
 **本 Sprint 产出：** 所有后续 Sprint 的开发基础可用
 
 ### Story 列表
@@ -398,6 +468,7 @@
 
 | 里程碑 | 时间点 | 检查项 |
 |--------|--------|--------|
+| **M0 — 环境就绪** | S0 末（W0 末） | 中间件全部健康，Git 同步可用，数据库结构初始化完成，Sprint 1 可启动 |
 | **M1 — 互动基础可用** | S3 末（W6 末） | 签到/弹幕/点名端到端可用，TPS 初步验证 |
 | **M2 — 考试全流程可用** | S5 末（W10 末） | 出卷/发布/作答/交卷/阅卷完整流程，容灾机制就位 |
 | **M3 — AI+统计可用** | S7 末（W14 末） | AI 批改/转写/思维导图可用，大屏实时统计可用，教务 ETL 验证 |
@@ -408,17 +479,18 @@
 ## Sprint 级别燃尽图（Story Points）
 
 ```
-Sprint   计划SP  累计SP
-  S1      43      43
-  S2      43      86
-  S3      37     123
-  S4      41     164
-  S5      43     207
-  S6      43     250
-  S7      42     292
-  S8      46     338
-  S9      52     390
-总计：     390 SP / 18 周
+Sprint   计划SP  累计SP  说明
+  S0      17      17    环境构建（启动前，OPS+BE-1 主导）
+  S1      43      60    基础框架
+  S2      43     103    课程课堂 + AI 网关
+  S3      37     140    互动教学核心
+  S4      41     181    题库与测试基础
+  S5      43     224    在线考试与监考
+  S6      43     267    AI 深度集成
+  S7      42     309    统计分析 + 教务对接
+  S8      46     355    直播 + AI 对话深化
+  S9      52     407    实地联调 · 压测 · 等保
+总计：     407 SP（含 S0）
 ```
 
 > 理想燃尽：每周约 21.7 SP（10人×2.17 SP/人/周）。实际需考虑会议/联调/缺陷修复占用约 25% 时间，有效开发容量约 75 SP/人/周（10人），每 Sprint（2周）约 150 人日工时，390 SP 分 9 Sprint 平均约 43 SP/Sprint，与规划一致。

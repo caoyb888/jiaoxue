@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class StudentAnswerVO {
@@ -19,4 +20,6 @@ public class StudentAnswerVO {
     /** 0-未批改 1-自动批改完成 2-教师已批改 */
     private Integer reviewStatus;
     private LocalDateTime submittedAt;
+    /** 主观题附件路径列表（MinIO key），阅卷时展示 */
+    private List<String> attachments;
 }

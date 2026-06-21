@@ -5,9 +5,13 @@
     "paths": {
       "@/*": ["./src/*"],
       "@edu/ui": ["../../packages/ui/src/index.ts"],
+      "@edu/ui/*": ["../../packages/ui/src/*"],
       "@edu/api": ["../../packages/api/src/index.ts"],
+      "@edu/api/*": ["../../packages/api/src/*"],
       "@edu/store": ["../../packages/store/src/index.ts"],
-      "@edu/utils": ["../../packages/utils/src/index.ts"]
+      "@edu/store/*": ["../../packages/store/src/*"],
+      "@edu/utils": ["../../packages/utils/src/index.ts"],
+      "@edu/utils/*": ["../../packages/utils/src/*"]
     }
   },
   "include": ["src"],

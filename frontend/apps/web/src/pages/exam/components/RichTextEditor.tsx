@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react'
+import DOMPurify from 'dompurify'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
@@ -35,10 +36,10 @@ export function RichTextEditor({ value, onChange, placeholder = '请输入题干
       const formData = new FormData()
       formData.append('file', file)
       try {
-        const res = await http.post<{ data: { url: string } }>('/v1/file/upload/image', formData, {
+        const res = await http.post<FormData, { url: string }>('/v1/file/upload/image', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        const url = res.data?.url
+        const url = res?.url
         if (url) {
           editor.chain().focus().setImage({ src: url, alt: file.name }).run()
         }
@@ -119,10 +120,12 @@ export function RichTextEditor({ value, onChange, placeholder = '请输入题干
 // ─── 纯展示组件（学生端/预览），不加载编辑器 ─────────────────────────────
 
 export function RichTextView({ html }: { html: string }) {
+  // CLAUDE.md §6.5：Web 端富文本渲染前必须经 DOMPurify 过滤，防 XSS（题干为教师录入 HTML）
+  const safeHtml = DOMPurify.sanitize(html)
   return (
     <div
       className="prose prose-sm max-w-none text-sm text-gray-800 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
     />
   )
 }

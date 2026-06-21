@@ -34,6 +34,14 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: "1"
       retries: 3
+    consumer:
+      group-id: notify-teaching
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # 用生产端写入的 __TypeId__ 头反序列化为 TeachingEvent（edu-common），信任全部包
+        spring.json.trusted.packages: "*"
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml

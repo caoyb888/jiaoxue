@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCourseList } from '@edu/api'
 import type { CourseListItemVO } from '@edu/api'

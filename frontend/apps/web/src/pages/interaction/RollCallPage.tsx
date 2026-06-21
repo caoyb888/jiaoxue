@@ -58,8 +58,11 @@ export default function RollCallPage() {
           <div className="text-center animate-bounce">
             <div className="text-6xl mb-4">🎯</div>
             <div className="text-white text-2xl font-bold">
-              学生 #{result.studentIds[0]}
+              {result.students?.[0]?.realName ?? `学生 #${result.studentIds[0]}`}
             </div>
+            {result.students?.[0]?.studentNo && (
+              <div className="text-white/50 text-sm mt-1">{result.students[0].studentNo}</div>
+            )}
             <div className="text-white/60 text-sm mt-2">{result.message}</div>
           </div>
         ) : (

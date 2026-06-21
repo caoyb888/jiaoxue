@@ -17,18 +17,37 @@ spring:
         file-extension: yaml
   datasource:
     url: jdbc:mysql://${DB_HOST:100.84.68.115}:${DB_PORT:13306}/edu_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${DB_USER:edu_app}
-    password: ${DB_PASS:edu_app_2026}
+    username: ${DB_USER:root}
+    password: ${DB_PASS:edu_dev_2026}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20
       connection-timeout: 30000
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 0
+    enabled: false
+  data:
+    redis:
+      host: ${REDIS_HOST:100.84.68.115}
+      port: ${REDIS_PORT:16379}
+      database: 0
+
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDR:100.84.68.115:19092}
+    consumer:
+      group-id: edu-user
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+redisson:
+  address: redis://${REDIS_HOST:100.84.68.115}:${REDIS_PORT:16379}
+  database: 0
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml

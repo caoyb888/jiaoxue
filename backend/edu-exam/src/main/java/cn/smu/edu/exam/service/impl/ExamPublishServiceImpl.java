@@ -10,6 +10,7 @@ import cn.smu.edu.exam.domain.entity.*;
 import cn.smu.edu.exam.domain.vo.*;
 import cn.smu.edu.exam.repository.*;
 import cn.smu.edu.exam.service.ExamPublishService;
+import cn.smu.edu.exam.domain.vo.StudentExamListVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class ExamPublishServiceImpl implements ExamPublishService {
     private final ExamPaperQuestionMapper paperQuestionMapper;
     private final QuestionMapper questionMapper;
     private final QuestionOptionMapper questionOptionMapper;
+    private final ExamMonitorMapper monitorMapper;
     private final ExamPublishConverter converter;
     private final QuestionConverter questionConverter;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -224,6 +226,53 @@ public class ExamPublishServiceImpl implements ExamPublishService {
         vo.setStatus(status);
         vo.setStatusLabel(statusLabel(status));
         return vo;
+    }
+
+    @Override
+    public List<StudentExamListVO> listForStudent(Long classId, Long studentId) {
+        List<ExamPublish> publishes = publishMapper.selectByClassId(classId);
+
+        // 批量查询该学生的监考记录（一次 IN 查询，避免 N+1）
+        Set<Long> publishIds = publishes.stream().map(ExamPublish::getId).collect(Collectors.toSet());
+        Map<Long, ExamMonitor> monitorMap = publishIds.isEmpty() ? Map.of() :
+                monitorMapper.selectList(new LambdaQueryWrapper<ExamMonitor>()
+                        .in(ExamMonitor::getPublishId, publishIds)
+                        .eq(ExamMonitor::getStudentId, studentId))
+                        .stream().collect(Collectors.toMap(ExamMonitor::getPublishId, m -> m));
+
+        return publishes.stream().map(p -> {
+            StudentExamListVO vo = new StudentExamListVO();
+            vo.setPublishId(p.getId());
+            vo.setPaperId(p.getPaperId());
+            vo.setStartTime(p.getStartTime());
+            vo.setEndTime(p.getEndTime());
+            vo.setDurationMin(p.getDurationMin());
+            vo.setHasPassword(StringUtils.hasText(p.getPasswordHash()));
+            vo.setEnableMonitor(p.getEnableMonitor());
+            vo.setFaceVerifyType(p.getFaceVerifyType());
+            int status = computeStatus(p.getStartTime(), p.getEndTime());
+            vo.setStatus(status);
+            vo.setStatusLabel(statusLabel(status));
+            ExamMonitor monitor = monitorMap.get(p.getId());
+            vo.setEntered(monitor != null);
+            vo.setSubmitted(monitor != null && "SUBMITTED".equals(monitor.getSessionStatus()));
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public void syncExamStatus() {
+        List<ExamPublish> list = publishMapper.selectActiveOrPending();
+        for (ExamPublish p : list) {
+            int newStatus = computeStatus(p.getStartTime(), p.getEndTime());
+            if (!Objects.equals(newStatus, p.getStatus())) {
+                ExamPublish update = new ExamPublish();
+                update.setId(p.getId());
+                update.setStatus(newStatus);
+                publishMapper.updateById(update);
+                log.info("考试状态同步: publishId={}, {} → {}", p.getId(), p.getStatus(), newStatus);
+            }
+        }
     }
 
     /** 批量加载试卷题目（避免 N+1，answerVisible=false 时清空 answer/analysis） */
