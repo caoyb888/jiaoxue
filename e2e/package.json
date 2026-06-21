@@ -5,6 +5,12 @@
     "test": "playwright test",
     "test:health": "playwright test tests/05-api-health.spec.ts",
     "test:auth": "playwright test tests/01-auth.spec.ts",
+    "test:api": "playwright test --workers=1 tests/s1-auth-user.spec.ts tests/s2-course.spec.ts tests/s3-interaction.spec.ts tests/s4-exam-bank.spec.ts tests/s5-exam-online.spec.ts",
+    "test:s1": "playwright test tests/s1-auth-user.spec.ts",
+    "test:s2": "playwright test tests/s2-course.spec.ts",
+    "test:s3": "playwright test tests/s3-interaction.spec.ts",
+    "test:s4": "playwright test tests/s4-exam-bank.spec.ts",
+    "test:s5": "playwright test tests/s5-exam-online.spec.ts",
     "report": "playwright show-report /tmp/playwright-report"
   },
   "devDependencies": {
