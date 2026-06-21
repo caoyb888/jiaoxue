@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStartLesson, useEndLesson, useLessonDetail, courseApi } from '@edu/api'
 import type { LessonStartVO } from '@edu/api'
 import { useAuthStore } from '@edu/store'
-import { isWeb } from '@edu/utils'
+import { useLessonTopic } from '../../hooks/useLessonTopic'
 
 /** 课堂页：教师开始/结束课堂 + 课件翻页推送（C5：默认 SLIDE_ONLY） */
 export default function ClassroomPage() {
@@ -16,8 +16,14 @@ export default function ClassroomPage() {
   const [lessonInfo, setLessonInfo] = useState<LessonStartVO | null>(null)
   const [currentSlide, setCurrentSlide] = useState(1)
   const [elapsedMin, setElapsedMin] = useState(0)
-  const wsRef = useRef<WebSocket | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 课件翻页：订阅 /topic/lesson/{id}/slide，并可向 /app/lesson/{id}/nextSlide 推送
+  const sendSlide = useLessonTopic<{ slideIndex: number }>(
+    lessonId ?? undefined,
+    'slide',
+    (msg) => setCurrentSlide(msg.slideIndex),
+  )
 
   const { data: lesson } = useLessonDetail(lessonId)
   const startLesson = useStartLesson()
@@ -37,29 +43,6 @@ export default function ClassroomPage() {
     }
   }, [lessonInfo])
 
-  // WebSocket 连接（仅 Web 端，小程序用 Taro.connectSocket）
-  const connectWs = useCallback((info: LessonStartVO) => {
-    if (!isWeb) return
-    const ws = new WebSocket(`${info.wsEndpoint}`)
-    ws.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data)
-        if (msg.type === 'SLIDE_CHANGE') {
-          setCurrentSlide(msg.slideNo)
-        }
-      } catch {}
-    }
-    ws.onerror = () => console.warn('WebSocket 连接失败，将在重试')
-    wsRef.current = ws
-  }, [])
-
-  const disconnectWs = useCallback(() => {
-    if (isWeb && wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-  }, [])
-
   const handleStart = async () => {
     if (!classId) return
     const result = await startLesson.mutateAsync({
@@ -69,13 +52,12 @@ export default function ClassroomPage() {
     setLessonId(result.lessonId)
     setLessonInfo(result)
     setCurrentSlide(1)
-    connectWs(result)
+    // STOMP 订阅在 lessonId 变化后由 useLessonTopic 自动建立
   }
 
   const handleEnd = async () => {
     if (!lessonId) return
     await endLesson.mutateAsync(lessonId)
-    disconnectWs()
     if (timerRef.current) clearInterval(timerRef.current)
     setLessonId(null)
     setLessonInfo(null)
@@ -86,13 +68,11 @@ export default function ClassroomPage() {
   const handleSlideChange = async (newSlide: number) => {
     if (!lessonId || newSlide < 1 || newSlide > totalSlides) return
     setCurrentSlide(newSlide)
-    // 推送翻页通知（WebSocket / REST fallback）
+    // 持久化当前页（REST）+ STOMP 广播给学生（notify @MessageMapping nextSlide → /topic/.../slide）
     try {
       await courseApi.updateSlide(lessonId, newSlide)
     } catch {}
-    if (isWeb && wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'SLIDE_CHANGE', slideNo: newSlide }))
-    }
+    sendSlide('nextSlide', { slideIndex: newSlide })
   }
 
   const isActive = !!lessonInfo
