@@ -7,38 +7,76 @@ import cn.smu.edu.ai.service.LessonReportService;
 import cn.smu.edu.common.event.AiTaskEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * AI 任务队列消费者（C3约束：课堂结束后全部异步化）
  *
  * concurrency = "3"：GPU/算力限制，不得随意调大（CLAUDE.md 8.3节）
- * 幂等：taskId 在 Redis 去重（TTL 24h），防重复处理
+ * 幂等：taskId 在 Redis 去重（ai:task:done:{taskId}，TTL 24h），防重复处理（CLAUDE.md 5.6节）
+ *
+ * 支持的任务类型（AiTaskEvent.taskType）：
+ *   SUMMARY  — 课堂讲稿摘要 + 思维导图（S6-05/S6-06）
+ *   MINDMAP  — 仅思维导图（S6-06）
+ *   REVIEW   — 主观题智能批改（S6-02/S6-03）
+ *   GENERATE — 一键 AI 出题（S6-07）
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AiTaskConsumer {
 
+    private static final String DEDUPE_KEY_PREFIX = "ai:task:done:";
+    private static final Duration DEDUPE_TTL = Duration.ofHours(24);
+
     private final AiGatewayService aiGatewayService;
     private final LessonReportService reportService;
+    private final StringRedisTemplate redisTemplate;
 
-    @KafkaListener(topics = "edu.ai.tasks", groupId = "edu-ai-task",
-            concurrency = "3")
+    @KafkaListener(topics = "edu.ai.tasks", groupId = "edu-ai-task", concurrency = "3")
     public void consumeAiTask(AiTaskEvent event) {
-        log.info("AI任务开始处理: taskId={}, lessonId={}, type={}", event.getTaskId(), event.getLessonId(), event.getTaskType());
+        log.info("AI任务收到: taskId={}, lessonId={}, type={}", event.getTaskId(), event.getLessonId(), event.getTaskType());
+
+        // 幂等去重：首次处理才占位，重复消息直接跳过（CLAUDE.md 5.6/8.3）
+        if (!tryAcquire(event.getTaskId())) {
+            log.info("AI任务重复消息，已跳过: taskId={}", event.getTaskId());
+            return;
+        }
 
         try {
             switch (event.getTaskType()) {
                 case "SUMMARY"  -> handleSummary(event);
                 case "MINDMAP"  -> handleMindmap(event);
+                case "REVIEW"   -> handleReview(event);
+                case "GENERATE" -> handleGenerate(event);
                 default -> log.warn("未知AI任务类型: type={}", event.getTaskType());
             }
         } catch (Exception e) {
             log.error("AI任务处理失败: taskId={}, lessonId={}", event.getTaskId(), event.getLessonId(), e);
+            // 处理失败时释放去重键，允许重投递重试
+            release(event.getTaskId());
             reportService.markFailed(event.getLessonId());
             throw e;
+        }
+    }
+
+    /** 占位成功返回 true（首次），已存在返回 false（重复） */
+    private boolean tryAcquire(String taskId) {
+        if (taskId == null || taskId.isBlank()) {
+            return true; // 无 taskId 的任务不做去重，直接处理
+        }
+        Boolean first = redisTemplate.opsForValue()
+                .setIfAbsent(DEDUPE_KEY_PREFIX + taskId, "1", DEDUPE_TTL);
+        return Boolean.TRUE.equals(first);
+    }
+
+    private void release(String taskId) {
+        if (taskId != null && !taskId.isBlank()) {
+            redisTemplate.delete(DEDUPE_KEY_PREFIX + taskId);
         }
     }
 
@@ -84,6 +122,18 @@ public class AiTaskConsumer {
         String mindmapJson = aiGatewayService.chatSync(req);
         reportService.saveAiContent(event.getLessonId(), null, mindmapJson);
         log.info("AI思维导图生成完成: lessonId={}", event.getLessonId());
+    }
+
+    /** 主观题智能批改 — 业务逻辑在 S6-02/S6-03 接入 AiReviewService */
+    private void handleReview(AiTaskEvent event) {
+        log.info("AI批改任务受理（待 S6-02 AiReviewService 接入）: lessonId={}, taskId={}",
+                event.getLessonId(), event.getTaskId());
+    }
+
+    /** 一键 AI 出题 — 业务逻辑在 S6-07 接入 AiQuestionGenerateService */
+    private void handleGenerate(AiTaskEvent event) {
+        log.info("AI出题任务受理（待 S6-07 出题服务接入）: lessonId={}, taskId={}",
+                event.getLessonId(), event.getTaskId());
     }
 
     private String buildSummaryPrompt(Long lessonId) {
