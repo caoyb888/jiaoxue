@@ -79,6 +79,15 @@ public class DialogueService {
         return messageRepository.findBySessionIdOrderBySeqAsc(sessionId);
     }
 
+    /** 某节课全部对话会话（教师端概览，按最近活跃排序） */
+    public List<AiDialogueSession> listByLesson(Long lessonId) {
+        return sessionRepository.findByLessonIdOrderByUpdatedAtDesc(lessonId);
+    }
+
+    public long messageCount(String sessionId) {
+        return messageRepository.countBySessionId(sessionId);
+    }
+
     /** 将消息标记为安全拦截（C4：is_filtered=true） */
     public void markFiltered(String messageId) {
         if (messageId == null) {
