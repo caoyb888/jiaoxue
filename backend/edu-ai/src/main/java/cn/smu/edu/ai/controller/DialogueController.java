@@ -1,11 +1,15 @@
 package cn.smu.edu.ai.controller;
 
+import cn.smu.edu.ai.domain.document.AiDialogueSession;
 import cn.smu.edu.ai.domain.dto.ChatMessageDTO;
 import cn.smu.edu.ai.domain.dto.DialogueTaskDTO;
 import cn.smu.edu.ai.domain.model.AiRequest;
+import cn.smu.edu.ai.domain.model.ModelType;
+import cn.smu.edu.ai.domain.vo.DialogueMessageVO;
 import cn.smu.edu.ai.domain.vo.DialogueTaskVO;
 import cn.smu.edu.ai.security.PromptSecurityException;
 import cn.smu.edu.ai.service.AiGatewayService;
+import cn.smu.edu.ai.service.DialogueService;
 import cn.smu.edu.common.aop.OperationLog;
 import cn.smu.edu.common.result.Result;
 import cn.smu.edu.common.util.UserContext;
@@ -18,7 +22,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 
 import java.io.IOException;
-import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,44 +33,61 @@ import java.util.concurrent.Executors;
 public class DialogueController {
 
     private final AiGatewayService aiGatewayService;
+    private final DialogueService dialogueService;
     private final ExecutorService sseExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     @OperationLog(module = "ai", operation = "创建AI对话任务")
     @PostMapping("/task")
     public Result<DialogueTaskVO> createTask(@RequestBody @Valid DialogueTaskDTO dto) {
-        String sessionId = UUID.randomUUID().toString();
-
-        // opening 也经过安全层校验（创建时写入 Redis session 等 S6 阶段补全）
+        Long userId = UserContext.getUserId();
+        AiDialogueSession session = dialogueService.createSession(dto, userId);
         DialogueTaskVO vo = DialogueTaskVO.builder()
-                .sessionId(sessionId)
-                .topic(dto.getTopic())
-                .opening(dto.getOpening() != null ? dto.getOpening() : "请就本课主题与我展开讨论...")
-                .maxTurns(dto.getMaxTurns())
+                .sessionId(session.getSessionId())
+                .topic(session.getTopic())
+                .opening(session.getOpening())
+                .maxTurns(session.getMaxTurns())
                 .build();
         return Result.ok(vo);
     }
 
     /**
      * SSE 流式输出（C4：经 AiGatewayService 强制过安全层）
-     * 返回 text/event-stream，网关层关闭全缓冲透传流
+     * 返回 text/event-stream，网关层关闭全缓冲透传流（edu-ai-dialogue 路由 response-timeout=-1）。
+     * 学生发言落库 → 流式回复聚合后落库 assistant 消息。
      */
     @PostMapping(value = "/{sessionId}/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sendMessage(@PathVariable String sessionId,
                                   @RequestBody @Valid ChatMessageDTO dto) {
         Long userId = UserContext.getUserId();
-        SseEmitter emitter = new SseEmitter(60_000L);
+        SseEmitter emitter = new SseEmitter(0L); // 0 = 不超时，由流自身完成/出错收尾
+
+        AiDialogueSession session = dialogueService.getSession(sessionId);
+        if (session == null) {
+            sendErrorAndComplete(emitter, 404, "对话会话不存在");
+            return emitter;
+        }
+        if (session.getTurnCount() >= session.getMaxTurns()) {
+            sendErrorAndComplete(emitter, 200720, "已达最大对话轮次");
+            return emitter;
+        }
+
+        // 学生发言先落库（轮次 +1）
+        dialogueService.saveUserMessage(sessionId, userId, dto.getContent());
 
         AiRequest request = AiRequest.builder()
                 .userPrompt(dto.getContent())
                 .userId(userId)
+                .modelType(parseModel(session.getModelType()))
+                .systemPrompt("你是课堂学习助手，围绕主题「" + session.getTopic() + "」与学生展开有引导性的讨论。")
                 .build();
 
+        StringBuilder full = new StringBuilder();
         sseExecutor.submit(() -> {
             Disposable subscription = null;
             try {
-                var flux = aiGatewayService.chat(request);
-                subscription = flux.subscribe(
+                subscription = aiGatewayService.chat(request).subscribe(
                         chunk -> {
+                            full.append(chunk);
                             try {
                                 emitter.send(SseEmitter.event()
                                         .data("{\"type\":\"chunk\",\"content\":\"" + escapeJson(chunk) + "\"}"));
@@ -86,9 +107,12 @@ public class DialogueController {
                             }
                         },
                         () -> {
+                            // 流式回复聚合后落库 assistant 消息
+                            if (!full.isEmpty()) {
+                                dialogueService.saveAssistantMessage(sessionId, userId, full.toString());
+                            }
                             try {
-                                emitter.send(SseEmitter.event()
-                                        .data("{\"type\":\"done\",\"content\":\"\"}"));
+                                emitter.send(SseEmitter.event().data("{\"type\":\"done\",\"content\":\"\"}"));
                                 emitter.complete();
                             } catch (IOException e) {
                                 emitter.completeWithError(e);
@@ -96,13 +120,7 @@ public class DialogueController {
                         }
                 );
             } catch (PromptSecurityException pse) {
-                try {
-                    emitter.send(SseEmitter.event()
-                            .data("{\"type\":\"error\",\"code\":" + pse.getCode() + ",\"message\":\"" + escapeJson(pse.getMessage()) + "\"}"));
-                    emitter.complete();
-                } catch (IOException ex) {
-                    emitter.completeWithError(ex);
-                }
+                sendErrorAndComplete(emitter, pse.getCode(), pse.getMessage());
             } catch (Exception e) {
                 emitter.completeWithError(e);
             }
@@ -112,9 +130,28 @@ public class DialogueController {
     }
 
     @GetMapping("/{sessionId}/history")
-    public Result<?> getHistory(@PathVariable String sessionId) {
-        // S6 阶段完整实现（需 MongoDB 存对话历史）
-        return Result.ok(java.util.List.of());
+    public Result<List<DialogueMessageVO>> getHistory(@PathVariable String sessionId) {
+        List<DialogueMessageVO> list = dialogueService.history(sessionId)
+                .stream().map(DialogueMessageVO::from).toList();
+        return Result.ok(list);
+    }
+
+    private ModelType parseModel(String name) {
+        try {
+            return name != null ? ModelType.valueOf(name) : ModelType.ANALYSIS;
+        } catch (IllegalArgumentException e) {
+            return ModelType.ANALYSIS;
+        }
+    }
+
+    private void sendErrorAndComplete(SseEmitter emitter, int code, String message) {
+        try {
+            emitter.send(SseEmitter.event()
+                    .data("{\"type\":\"error\",\"code\":" + code + ",\"message\":\"" + escapeJson(message) + "\"}"));
+            emitter.complete();
+        } catch (IOException ex) {
+            emitter.completeWithError(ex);
+        }
     }
 
     private String escapeJson(String s) {

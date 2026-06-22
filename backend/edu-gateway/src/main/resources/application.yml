@@ -37,6 +37,11 @@ spring:
           uri: lb://edu-interaction
           predicates:
             - Path=/api/v1/interaction/**,/api/v1/attend/**,/api/v1/barrage/**
+        # 一键AI出题在 edu-ai，需先于 edu-exam 的 /question/** 匹配
+        - id: edu-ai-question
+          uri: lb://edu-ai
+          predicates:
+            - Path=/api/v1/question/ai-generate/**
         - id: edu-exam
           uri: lb://edu-exam
           predicates:
@@ -45,6 +50,15 @@ spring:
           uri: lb://edu-grade
           predicates:
             - Path=/api/v1/grade/**
+        # AI对话 SSE 流式：关闭响应超时，避免长连接被网关切断（不缓冲、逐块透传）
+        - id: edu-ai-dialogue
+          uri: lb://edu-ai
+          predicates:
+            - Path=/api/v1/ai/dialogue/**
+          metadata:
+            response-timeout: -1
+          filters:
+            - RemoveRequestHeader=Content-Length
         - id: edu-ai
           uri: lb://edu-ai
           predicates:
