@@ -1,12 +1,10 @@
 package cn.smu.edu.ai.consumer;
 
-import cn.smu.edu.ai.domain.model.AiRequest;
-import cn.smu.edu.ai.domain.model.ModelType;
-import cn.smu.edu.ai.service.AiGatewayService;
 import cn.smu.edu.ai.service.AiNotifyPublisher;
 import cn.smu.edu.ai.service.AiReviewService;
 import cn.smu.edu.ai.service.LessonReportService;
 import cn.smu.edu.ai.service.LessonSummaryService;
+import cn.smu.edu.ai.service.MindmapService;
 import cn.smu.edu.common.event.AiTaskEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,9 +34,9 @@ public class AiTaskConsumer {
     private static final String DEDUPE_KEY_PREFIX = "ai:task:done:";
     private static final Duration DEDUPE_TTL = Duration.ofHours(24);
 
-    private final AiGatewayService aiGatewayService;
     private final LessonReportService reportService;
     private final LessonSummaryService lessonSummaryService;
+    private final MindmapService mindmapService;
     private final AiReviewService aiReviewService;
     private final AiNotifyPublisher notifyPublisher;
     private final StringRedisTemplate redisTemplate;
@@ -94,8 +92,9 @@ public class AiTaskConsumer {
         LessonSummaryService.SummaryResult summary =
                 lessonSummaryService.summarize(event.getLessonId(), transcript);
 
-        // 思维导图也一并生成（SUMMARY 任务包含两部分）—— 基于同一份转写文本
-        String mindmapJson = aiGatewayService.chatSync(buildMindmapRequest(event, transcript));
+        // 思维导图也一并生成（SUMMARY 任务包含两部分）—— 基于同一份转写文本，存 Mongo ai_mindmap
+        String mindmapJson = mindmapService.generate(
+                event.getLessonId(), event.getTeacherId(), transcript, "SUMMARY");
 
         reportService.saveAiContent(event.getLessonId(),
                 summary.summary(), summary.keyPointsJson(), mindmapJson);
@@ -110,20 +109,14 @@ public class AiTaskConsumer {
         reportService.initReport(event.getLessonId(), 0);
 
         String transcript = lessonSummaryService.loadTranscript(event.getLessonId());
-        String mindmapJson = aiGatewayService.chatSync(buildMindmapRequest(event, transcript));
+        // 生成并存 Mongo ai_mindmap
+        String mindmapJson = mindmapService.generate(
+                event.getLessonId(), event.getTeacherId(), transcript, "MINDMAP");
         // 仅更新思维导图列，避免覆盖已生成的摘要/关键点
         reportService.saveMindmap(event.getLessonId(), mindmapJson);
+        notifyPublisher.notifyLesson(event.getLessonId(), "AI_MINDMAP_DONE",
+                "思维导图已生成", java.util.Map.of("lessonId", event.getLessonId()));
         log.info("AI思维导图生成完成: lessonId={}", event.getLessonId());
-    }
-
-    private AiRequest buildMindmapRequest(AiTaskEvent event, String transcript) {
-        return AiRequest.builder()
-                .lessonId(event.getLessonId())
-                .userId(event.getTeacherId())
-                .modelType(ModelType.ANALYSIS)
-                .systemPrompt("你是一名教学助手，擅长将课堂内容转换为Markmap格式的思维导图JSON。只输出JSON，不要包含其他文字。")
-                .userPrompt(buildMindmapPrompt(event.getLessonId(), transcript))
-                .build();
     }
 
     /** 主观题智能批改（S6-02 批改 + S6-03 写回/通知）：bizId 携带 publishId */
@@ -143,12 +136,4 @@ public class AiTaskConsumer {
                 event.getLessonId(), event.getTaskId());
     }
 
-    private String buildMindmapPrompt(Long lessonId, String transcript) {
-        String content = (transcript == null || transcript.isBlank())
-                ? "（本节课暂无转写文本，请基于课堂主题给出通用知识结构。）"
-                : transcript;
-        return "请根据以下课堂转写内容，生成Markmap格式的思维导图JSON。" +
-                "格式示例：{\"title\":\"主题\",\"children\":[{\"content\":\"子节点\",\"children\":[]}]}。" +
-                "只输出JSON，不要有任何额外文字。\n课堂转写文本如下：\n" + content;
-    }
 }

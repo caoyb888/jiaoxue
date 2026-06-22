@@ -38,4 +38,11 @@
         WHERE lesson_id = #{lessonId}
     </update>
 
+    <update id="updateMindmapVisible">
+        UPDATE lesson_report
+        SET mindmap_visible = #{visible},
+            updated_at      = NOW()
+        WHERE lesson_id = #{lessonId}
+    </update>
+
 </mapper>

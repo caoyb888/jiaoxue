@@ -1,6 +1,5 @@
 package cn.smu.edu.ai.consumer;
 
-import cn.smu.edu.ai.service.AiGatewayService;
 import cn.smu.edu.ai.service.LessonReportService;
 import cn.smu.edu.common.event.AiTaskEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +28,9 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AiTaskConsumerTest {
 
-    @Mock AiGatewayService aiGatewayService;
     @Mock LessonReportService reportService;
     @Mock cn.smu.edu.ai.service.LessonSummaryService lessonSummaryService;
+    @Mock cn.smu.edu.ai.service.MindmapService mindmapService;
     @Mock cn.smu.edu.ai.service.AiReviewService aiReviewService;
     @Mock cn.smu.edu.ai.service.AiNotifyPublisher notifyPublisher;
     @Mock StringRedisTemplate redisTemplate;
@@ -54,14 +53,14 @@ class AiTaskConsumerTest {
         when(lessonSummaryService.summarize(eq(100L), any()))
                 .thenReturn(new cn.smu.edu.ai.service.LessonSummaryService.SummaryResult(
                         "课堂摘要", java.util.List.of("要点1", "要点2"), "[\"要点1\",\"要点2\"]"));
-        when(aiGatewayService.chatSync(any())).thenReturn("{\"title\":\"t\"}");
+        when(mindmapService.generate(eq(100L), any(), any(), eq("SUMMARY"))).thenReturn("{\"title\":\"t\"}");
 
         consumer.consumeAiTask(event("t1", "SUMMARY"));
 
         verify(reportService).initReport(100L, 0);
         verify(lessonSummaryService).loadTranscript(100L);
-        verify(aiGatewayService, times(1)).chatSync(any()); // 思维导图（摘要在 LessonSummaryService 内部）
-        verify(reportService).saveAiContent(eq(100L), eq("课堂摘要"), eq("[\"要点1\",\"要点2\"]"), anyString());
+        verify(mindmapService).generate(eq(100L), any(), any(), eq("SUMMARY")); // 思维导图存 Mongo
+        verify(reportService).saveAiContent(eq(100L), eq("课堂摘要"), eq("[\"要点1\",\"要点2\"]"), eq("{\"title\":\"t\"}"));
     }
 
     @Test
@@ -70,7 +69,7 @@ class AiTaskConsumerTest {
 
         consumer.consumeAiTask(event("t2", "SUMMARY"));
 
-        verify(aiGatewayService, never()).chatSync(any());
+        verify(lessonSummaryService, never()).summarize(anyLong(), any());
         verify(reportService, never()).initReport(anyLong(), anyInt());
     }
 
@@ -84,13 +83,15 @@ class AiTaskConsumerTest {
         // REVIEW 路由到 AiReviewService，bizId=publishId，并单播通知教师
         verify(aiReviewService).reviewByPublish(500L, "t3");
         verify(notifyPublisher).notifyUser(eq(1L), eq("AI_REVIEW_DONE"), anyString(), any());
-        verify(aiGatewayService, never()).chatSync(any());
+        verify(mindmapService, never()).generate(anyLong(), any(), any(), anyString());
+        verify(lessonSummaryService, never()).summarize(anyLong(), any());
     }
 
     @Test
     void consume_shouldReleaseDedupeAndRethrow_whenHandlerFails() {
         when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
-        when(aiGatewayService.chatSync(any())).thenThrow(new RuntimeException("LLM down"));
+        when(mindmapService.generate(anyLong(), any(), any(), anyString()))
+                .thenThrow(new RuntimeException("LLM down"));
 
         try {
             consumer.consumeAiTask(event("t4", "SUMMARY"));
