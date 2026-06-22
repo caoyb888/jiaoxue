@@ -42,8 +42,8 @@ public class AiLectureTranscript {
 
     private LocalDateTime endedAt;
 
-    /** TTL 锚点（S6-15 配置过期索引） */
-    @Indexed
+    /** TTL 索引：课堂转写保留 90 天后由 Mongo 自动删除（S6-15） */
+    @Indexed(name = "ttl_created_at", expireAfter = "90d")
     private LocalDateTime createdAt;
 
     public static final String STATUS_RECORDING = "RECORDING";

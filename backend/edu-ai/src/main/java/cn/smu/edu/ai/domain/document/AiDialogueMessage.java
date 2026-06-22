@@ -40,7 +40,8 @@ public class AiDialogueMessage {
     @Field("is_filtered")
     private boolean filtered;
 
-    @Indexed
+    /** TTL 索引：对话消息保留 30 天后由 Mongo 自动删除（S6-15） */
+    @Indexed(name = "ttl_created_at", expireAfter = "30d")
     private LocalDateTime createdAt;
 
     public static final String ROLE_USER = "user";

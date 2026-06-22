@@ -29,6 +29,8 @@ spring:
       database: 5
     mongodb:
       uri: ${MONGO_URI:mongodb://100.84.68.115:17017/edu_ai}
+      # 启用注解索引自动创建（含 @Indexed TTL 索引，S6-15）
+      auto-index-creation: true
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:100.84.68.115:19092}
     producer:
