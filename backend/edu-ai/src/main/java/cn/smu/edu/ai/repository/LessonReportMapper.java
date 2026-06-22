@@ -25,4 +25,8 @@ public interface LessonReportMapper extends BaseMapper<LessonReport> {
     /** 仅更新生成状态（失败时不清空已生成内容） */
     int updateGenStatus(@Param("lessonId") Long lessonId,
                         @Param("genStatus") int genStatus);
+
+    /** 更新思维导图对学生可见性 */
+    int updateMindmapVisible(@Param("lessonId") Long lessonId,
+                             @Param("visible") int visible);
 }

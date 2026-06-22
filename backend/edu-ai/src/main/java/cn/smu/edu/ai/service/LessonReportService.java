@@ -54,4 +54,14 @@ public class LessonReportService {
     public void markFailed(Long lessonId) {
         reportMapper.updateGenStatus(lessonId, 3);
     }
+
+    /** 标记为生成中（重新生成触发时） */
+    public void markGenerating(Long lessonId) {
+        reportMapper.updateGenStatus(lessonId, 1);
+    }
+
+    /** 更新思维导图对学生可见性 */
+    public void updateMindmapVisible(Long lessonId, boolean visible) {
+        reportMapper.updateMindmapVisible(lessonId, visible ? 1 : 0);
+    }
 }
