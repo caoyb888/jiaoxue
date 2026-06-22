@@ -6,6 +6,7 @@ import cn.smu.edu.ai.service.AiGatewayService;
 import cn.smu.edu.ai.service.AiNotifyPublisher;
 import cn.smu.edu.ai.service.AiReviewService;
 import cn.smu.edu.ai.service.LessonReportService;
+import cn.smu.edu.ai.service.LessonSummaryService;
 import cn.smu.edu.common.event.AiTaskEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class AiTaskConsumer {
 
     private final AiGatewayService aiGatewayService;
     private final LessonReportService reportService;
+    private final LessonSummaryService lessonSummaryService;
     private final AiReviewService aiReviewService;
     private final AiNotifyPublisher notifyPublisher;
     private final StringRedisTemplate redisTemplate;
@@ -87,45 +89,41 @@ public class AiTaskConsumer {
     private void handleSummary(AiTaskEvent event) {
         reportService.initReport(event.getLessonId(), 0);
 
-        AiRequest req = AiRequest.builder()
-                .lessonId(event.getLessonId())
-                .userId(event.getTeacherId())
-                .modelType(ModelType.GENERATION)
-                .systemPrompt("你是一名教学助手，擅长将课堂录音转写为结构化讲稿摘要。")
-                .userPrompt(buildSummaryPrompt(event.getLessonId()))
-                .build();
+        // S6-05：读取 S6-04 课堂转写全文 → 摘要(≤500字) + key_points 抽取
+        String transcript = lessonSummaryService.loadTranscript(event.getLessonId());
+        LessonSummaryService.SummaryResult summary =
+                lessonSummaryService.summarize(event.getLessonId(), transcript);
 
-        String summary = aiGatewayService.chatSync(req);
+        // 思维导图也一并生成（SUMMARY 任务包含两部分）—— 基于同一份转写文本
+        String mindmapJson = aiGatewayService.chatSync(buildMindmapRequest(event, transcript));
 
-        // 思维导图也一并生成（SUMMARY 任务包含两部分）
-        AiRequest mindmapReq = AiRequest.builder()
-                .lessonId(event.getLessonId())
-                .userId(event.getTeacherId())
-                .modelType(ModelType.ANALYSIS)
-                .systemPrompt("你是一名教学助手，擅长将课堂内容转换为Markmap格式的思维导图JSON。只输出JSON，不要包含其他文字。")
-                .userPrompt(buildMindmapPrompt(event.getLessonId()))
-                .build();
-
-        String mindmapJson = aiGatewayService.chatSync(mindmapReq);
-
-        reportService.saveAiContent(event.getLessonId(), summary, mindmapJson);
-        log.info("AI课堂摘要 + 思维导图生成完成: lessonId={}", event.getLessonId());
+        reportService.saveAiContent(event.getLessonId(),
+                summary.summary(), summary.keyPointsJson(), mindmapJson);
+        // 通知教师课堂报告已生成
+        notifyPublisher.notifyLesson(event.getLessonId(), "AI_SUMMARY_DONE",
+                "课堂摘要已生成", java.util.Map.of("keyPointCount", summary.keyPoints().size()));
+        log.info("AI课堂摘要 + 思维导图生成完成: lessonId={}, 关键点数={}",
+                event.getLessonId(), summary.keyPoints().size());
     }
 
     private void handleMindmap(AiTaskEvent event) {
         reportService.initReport(event.getLessonId(), 0);
 
-        AiRequest req = AiRequest.builder()
+        String transcript = lessonSummaryService.loadTranscript(event.getLessonId());
+        String mindmapJson = aiGatewayService.chatSync(buildMindmapRequest(event, transcript));
+        // 仅更新思维导图列，避免覆盖已生成的摘要/关键点
+        reportService.saveMindmap(event.getLessonId(), mindmapJson);
+        log.info("AI思维导图生成完成: lessonId={}", event.getLessonId());
+    }
+
+    private AiRequest buildMindmapRequest(AiTaskEvent event, String transcript) {
+        return AiRequest.builder()
                 .lessonId(event.getLessonId())
                 .userId(event.getTeacherId())
                 .modelType(ModelType.ANALYSIS)
                 .systemPrompt("你是一名教学助手，擅长将课堂内容转换为Markmap格式的思维导图JSON。只输出JSON，不要包含其他文字。")
-                .userPrompt(buildMindmapPrompt(event.getLessonId()))
+                .userPrompt(buildMindmapPrompt(event.getLessonId(), transcript))
                 .build();
-
-        String mindmapJson = aiGatewayService.chatSync(req);
-        reportService.saveAiContent(event.getLessonId(), null, mindmapJson);
-        log.info("AI思维导图生成完成: lessonId={}", event.getLessonId());
     }
 
     /** 主观题智能批改（S6-02 批改 + S6-03 写回/通知）：bizId 携带 publishId */
@@ -145,18 +143,12 @@ public class AiTaskConsumer {
                 event.getLessonId(), event.getTaskId());
     }
 
-    private String buildSummaryPrompt(Long lessonId) {
-        return String.format(
-                "请根据课堂ID %d 的录音转写内容，生成一份结构化的课堂讲稿摘要，包括：" +
-                "1. 本节课的核心知识点（3-5个要点）；" +
-                "2. 重点概念解释；" +
-                "3. 例题或案例总结。要求语言简洁、条理清晰。", lessonId);
-    }
-
-    private String buildMindmapPrompt(Long lessonId) {
-        return String.format(
-                "请根据课堂ID %d 的内容，生成Markmap格式的思维导图JSON。" +
+    private String buildMindmapPrompt(Long lessonId, String transcript) {
+        String content = (transcript == null || transcript.isBlank())
+                ? "（本节课暂无转写文本，请基于课堂主题给出通用知识结构。）"
+                : transcript;
+        return "请根据以下课堂转写内容，生成Markmap格式的思维导图JSON。" +
                 "格式示例：{\"title\":\"主题\",\"children\":[{\"content\":\"子节点\",\"children\":[]}]}。" +
-                "只输出JSON，不要有任何额外文字。", lessonId);
+                "只输出JSON，不要有任何额外文字。\n课堂转写文本如下：\n" + content;
     }
 }

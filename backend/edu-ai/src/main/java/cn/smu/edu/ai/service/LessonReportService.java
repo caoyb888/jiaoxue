@@ -39,12 +39,19 @@ public class LessonReportService {
         log.info("课堂报告记录已创建: lessonId={}", lessonId);
     }
 
-    public void saveAiContent(Long lessonId, String summary, String mindmapJson) {
-        reportMapper.updateAiContent(lessonId, summary, mindmapJson, 2);
+    /** SUMMARY 任务：一次性写入摘要 + 关键点 + 思维导图，gen_status=2 */
+    public void saveAiContent(Long lessonId, String summary, String keyPointsJson, String mindmapJson) {
+        reportMapper.updateAiContent(lessonId, summary, keyPointsJson, mindmapJson, 2);
         log.info("AI内容已写入课堂报告: lessonId={}", lessonId);
     }
 
+    /** MINDMAP 任务：仅写思维导图，不覆盖已有摘要/关键点 */
+    public void saveMindmap(Long lessonId, String mindmapJson) {
+        reportMapper.updateMindmap(lessonId, mindmapJson, 2);
+        log.info("AI思维导图已写入课堂报告: lessonId={}", lessonId);
+    }
+
     public void markFailed(Long lessonId) {
-        reportMapper.updateAiContent(lessonId, null, null, 3);
+        reportMapper.updateGenStatus(lessonId, 3);
     }
 }
