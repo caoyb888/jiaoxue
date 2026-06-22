@@ -5,7 +5,9 @@ import cn.smu.edu.ai.domain.dto.QuestionGenerateDTO;
 import cn.smu.edu.ai.domain.entity.GeneratedQuestion;
 import cn.smu.edu.ai.domain.model.AiRequest;
 import cn.smu.edu.ai.domain.model.ModelType;
+import cn.smu.edu.ai.domain.vo.GeneratedQuestionVO;
 import cn.smu.edu.ai.repository.AiQuestionTaskRepository;
+import cn.smu.edu.ai.repository.QuestionReadMapper;
 import cn.smu.edu.ai.repository.QuestionWriteMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,7 @@ public class AiQuestionGenerateService {
 
     private final AiQuestionTaskRepository taskRepository;
     private final QuestionWriteMapper questionWriteMapper;
+    private final QuestionReadMapper questionReadMapper;
     private final AiGatewayService aiGatewayService;
     private final AiNotifyPublisher notifyPublisher;
     private final ObjectMapper objectMapper;
@@ -68,6 +71,15 @@ public class AiQuestionGenerateService {
         taskRepository.save(task);
         log.info("AI出题任务已创建: taskId={}, bankId={}, count={}", taskId, dto.getBankId(), dto.getCount());
         return taskId;
+    }
+
+    /** 查询某出题任务已生成入库的题目（预览） */
+    public List<GeneratedQuestionVO> getGeneratedQuestions(String taskId) {
+        AiQuestionTask task = taskRepository.findByTaskId(taskId).orElse(null);
+        if (task == null || task.getQuestionIds() == null || task.getQuestionIds().isEmpty()) {
+            return List.of();
+        }
+        return questionReadMapper.selectByIds(task.getQuestionIds());
     }
 
     /** 异步执行出题（由 Consumer 调用） */

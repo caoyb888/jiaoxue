@@ -53,4 +53,10 @@ public class QuestionGenerateController {
                 .map(t -> Result.ok(QuestionTaskVO.from(t)))
                 .orElseGet(() -> Result.ok(null));
     }
+
+    /** 查询出题任务已生成入库的题目（预览） */
+    @GetMapping("/{taskId}/questions")
+    public Result<java.util.List<cn.smu.edu.ai.domain.vo.GeneratedQuestionVO>> questions(@PathVariable String taskId) {
+        return Result.ok(questionGenerateService.getGeneratedQuestions(taskId));
+    }
 }

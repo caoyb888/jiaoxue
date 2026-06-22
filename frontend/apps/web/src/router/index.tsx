@@ -41,6 +41,9 @@ const DialoguePage = lazy(() =>
 const DialogueOverviewPage = lazy(() =>
   import('../pages/ai/DialogueOverviewPage').then((m) => ({ default: m.DialogueOverviewPage })),
 )
+const AiQuestionGenPage = lazy(() =>
+  import('../pages/exam/AiQuestionGenPage').then((m) => ({ default: m.AiQuestionGenPage })),
+)
 const ExamListPage = lazy(() =>
   import('../pages/exam/ExamListPage').then((m) => ({ default: m.ExamListPage })),
 )
@@ -92,6 +95,7 @@ export function AppRouter() {
           <Route path="/lesson/:lessonId/roll-call" element={<RequireAuth><RollCallPage /></RequireAuth>} />
           {/* Sprint 4 题库与试卷管理路由 */}
           <Route path="/exam/question-banks" element={<RequireAuth><QuestionBankPage /></RequireAuth>} />
+          <Route path="/exam/ai-generate" element={<RequireAuth><AiQuestionGenPage /></RequireAuth>} />
           <Route path="/exam/papers" element={<RequireAuth><ExamPaperPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/answer" element={<RequireAuth><StudentAnswerPage /></RequireAuth>} />
           {/* Sprint 5 在线考试与监考（正式考试，区别于上方随堂答题 StudentAnswerPage） */}
