@@ -9,5 +9,5 @@ export type { CourseListItemVO, ClassRoomVO, LessonDetailVO, LessonStartVO, Less
 export type { AttendCodeVO, AttendResultVO, AttendanceItemVO, AttendanceListVO, BarrageDTO, RollCallDTO, RollCallVO, SlideFeedbackDTO, ClassScoreDTO } from './modules/interaction'
 export { examApi, examStudentApi, examPublishApi, useQuestionBanks, useQuestions, useCreateBank, useCreateQuestion, useDeleteQuestion, QUESTION_TYPES, OPTION_TYPES, useExamPapers, usePaperDetail, useCreatePaper, useDeletePaper, useAddQuestionsToPaper, useRemovePaperQuestion } from './modules/exam'
 export type { QuestionBankVO, QuestionVO, QuestionOptionVO, QuestionCreateDTO, QuestionOptionDTO, QuestionBankCreateDTO, ExamPaperVO, ExamPaperDetailVO, PaperQuestionVO, ExamPaperCreateDTO, ExamPaperQueryParams, AddQuestionDTO, ExamEnterVO, ExamEnterDTO, ExamQuestionPageVO, PaperQuestionDetailVO, AnswerItemDTO, SubmitAnswerDTO, SubmitResultVO, HeartbeatVO, ExamPublishVO, StudentExamListVO, ExamPublishQueryParams, FaceVerifyResultVO, StudentAnswerVO, ExamScoreSummaryVO, ExamPublishCreateDTO } from './modules/exam'
-export { aiApi, useAiReviewResults, useTriggerAiReview, useOverrideReview } from './modules/ai'
-export type { AiReviewResultVO, TeacherReviewDTO } from './modules/ai'
+export { aiApi, useAiReviewResults, useTriggerAiReview, useOverrideReview, mindmapApi, useMindmap, useRegenerateMindmap, useSetMindmapVisible, useSaveMindmapContent } from './modules/ai'
+export type { AiReviewResultVO, TeacherReviewDTO, MindmapNode, MindmapVO } from './modules/ai'

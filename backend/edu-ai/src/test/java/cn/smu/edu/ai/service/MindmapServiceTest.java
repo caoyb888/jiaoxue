@@ -56,6 +56,25 @@ class MindmapServiceTest {
     }
 
     @Test
+    void saveEdited_shouldUpsertWithEditedSource() {
+        String json = "{\"title\":\"编辑后\",\"children\":[]}";
+
+        service().saveEdited(10L, 9L, json);
+
+        ArgumentCaptor<Update> cap = ArgumentCaptor.forClass(Update.class);
+        verify(mongoTemplate).upsert(any(), cap.capture(), eq(AiMindmap.class));
+        org.bson.Document set = cap.getValue().getUpdateObject().get("$set", org.bson.Document.class);
+        assertThat(set.getString("markmapJson")).isEqualTo(json);
+        assertThat(set.getString("source")).isEqualTo("EDITED");
+    }
+
+    @Test
+    void saveEdited_shouldThrow_whenInvalidJson() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> service().saveEdited(10L, 9L, "不是JSON"));
+    }
+
+    @Test
     void generate_shouldStillCallLlm_whenNoTranscript() {
         when(aiGatewayService.chatSync(any())).thenReturn("{\"title\":\"t\",\"children\":[]}");
 
