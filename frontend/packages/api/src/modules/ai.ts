@@ -252,3 +252,69 @@ export function useLessonDialogues(lessonId?: number | string) {
     staleTime: 10_000,
   })
 }
+
+// ─── 一键 AI 出题（S6-07/13）───────────────────────────────────────────────────
+
+export interface QuestionGenerateDTO {
+  bankId: number
+  topic: string
+  types: number[]
+  count: number
+  difficulty: number
+}
+
+export interface QuestionTaskVO {
+  taskId: string
+  bankId: number
+  /** PENDING / GENERATING / DONE / FAILED */
+  status: string
+  generatedCount: number
+  questionIds: number[] | null
+  errorMsg: string | null
+}
+
+export interface GeneratedQuestionVO {
+  id: number
+  type: number
+  content: string
+  answer: string | null
+  analysis: string | null
+  score: string | null
+  difficulty: number
+}
+
+export const questionGenApi = {
+  start: (dto: QuestionGenerateDTO): Promise<string> =>
+    http.post('/v1/question/ai-generate', dto),
+  status: (taskId: string): Promise<QuestionTaskVO> =>
+    http.get(`/v1/question/ai-generate/${taskId}`),
+  questions: (taskId: string): Promise<GeneratedQuestionVO[]> =>
+    http.get(`/v1/question/ai-generate/${taskId}/questions`),
+}
+
+export function useStartQuestionGen() {
+  return useMutation({
+    mutationFn: (dto: QuestionGenerateDTO) => questionGenApi.start(dto),
+  })
+}
+
+const TERMINAL_STATUS = new Set(['DONE', 'FAILED'])
+
+export function useQuestionGenStatus(taskId?: string) {
+  return useQuery({
+    queryKey: ['ai', 'question-gen', 'status', taskId],
+    queryFn: () => questionGenApi.status(taskId as string),
+    enabled: !!taskId,
+    // 轮询直到任务终态
+    refetchInterval: (query) =>
+      query.state.data && TERMINAL_STATUS.has(query.state.data.status) ? false : 1500,
+  })
+}
+
+export function useGeneratedQuestions(taskId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['ai', 'question-gen', 'questions', taskId],
+    queryFn: () => questionGenApi.questions(taskId as string),
+    enabled: !!taskId && enabled,
+  })
+}

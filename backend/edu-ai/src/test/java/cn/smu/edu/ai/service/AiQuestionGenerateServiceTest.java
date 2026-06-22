@@ -26,12 +26,13 @@ class AiQuestionGenerateServiceTest {
 
     @Mock AiQuestionTaskRepository taskRepository;
     @Mock QuestionWriteMapper questionWriteMapper;
+    @Mock cn.smu.edu.ai.repository.QuestionReadMapper questionReadMapper;
     @Mock AiGatewayService aiGatewayService;
     @Mock AiNotifyPublisher notifyPublisher;
 
     private AiQuestionGenerateService service() {
         return new AiQuestionGenerateService(taskRepository, questionWriteMapper,
-                aiGatewayService, notifyPublisher, new ObjectMapper());
+                questionReadMapper, aiGatewayService, notifyPublisher, new ObjectMapper());
     }
 
     private AiQuestionTask task(String taskId) {
@@ -107,6 +108,27 @@ class AiQuestionGenerateServiceTest {
         verify(taskRepository, atLeastOnce()).save(tCap.capture());
         assertThat(tCap.getValue().getStatus()).isEqualTo(AiQuestionTask.STATUS_FAILED);
         verify(notifyPublisher).notifyUser(eq(9L), eq("AI_QUESTION_FAILED"), anyString(), any());
+    }
+
+    @Test
+    void getGeneratedQuestions_shouldReturnEmpty_whenNoQuestionIds() {
+        AiQuestionTask t = task("tq");
+        t.setQuestionIds(null);
+        when(taskRepository.findByTaskId("tq")).thenReturn(Optional.of(t));
+
+        assertThat(service().getGeneratedQuestions("tq")).isEmpty();
+        verify(questionReadMapper, never()).selectByIds(anyList());
+    }
+
+    @Test
+    void getGeneratedQuestions_shouldQueryByIds_whenPresent() {
+        AiQuestionTask t = task("tq2");
+        t.setQuestionIds(List.of(100L, 101L));
+        when(taskRepository.findByTaskId("tq2")).thenReturn(Optional.of(t));
+        when(questionReadMapper.selectByIds(List.of(100L, 101L)))
+                .thenReturn(List.of(new cn.smu.edu.ai.domain.vo.GeneratedQuestionVO()));
+
+        assertThat(service().getGeneratedQuestions("tq2")).hasSize(1);
     }
 
     @Test

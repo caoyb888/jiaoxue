@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   useQuestionBanks,
   useQuestions,
@@ -71,6 +72,12 @@ export default function QuestionBankPage() {
             + 新建
           </button>
         </div>
+        <Link
+          to="/exam/ai-generate"
+          className="mx-3 mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-center text-xs font-medium text-white hover:bg-amber-700"
+        >
+          ✦ 一键 AI 出题
+        </Link>
 
         <div className="flex-1 overflow-y-auto py-2">
           {banksLoading && (
