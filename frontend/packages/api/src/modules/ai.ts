@@ -122,3 +122,133 @@ export function useSaveMindmapContent(lessonId: number | string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'mindmap', lessonId] }),
   })
 }
+
+// ─── AI 对话任务（S6-08/12）────────────────────────────────────────────────────
+
+export interface DialogueTaskDTO {
+  lessonId: number
+  topic: string
+  opening?: string
+  maxTurns?: number
+}
+
+export interface DialogueTaskVO {
+  sessionId: string
+  topic: string
+  opening: string
+  maxTurns: number
+}
+
+export interface DialogueMessageVO {
+  role: 'user' | 'assistant'
+  content: string
+  seq: number
+  createdAt: string | null
+}
+
+export interface DialogueSessionSummaryVO {
+  sessionId: string
+  userId: number
+  topic: string
+  turnCount: number
+  maxTurns: number
+  status: string
+  messageCount: number
+  updatedAt: string | null
+}
+
+/** SSE 流事件回调 */
+export interface DialogueStreamHandlers {
+  onChunk: (text: string) => void
+  onDone?: () => void
+  onError?: (code: number, message: string) => void
+}
+
+export const dialogueApi = {
+  createTask: (dto: DialogueTaskDTO): Promise<DialogueTaskVO> =>
+    http.post('/v1/ai/dialogue/task', dto),
+  history: (sessionId: string): Promise<DialogueMessageVO[]> =>
+    http.get(`/v1/ai/dialogue/${sessionId}/history`),
+  lessonSessions: (lessonId: number | string): Promise<DialogueSessionSummaryVO[]> =>
+    http.get(`/v1/ai/dialogue/lesson/${lessonId}/sessions`),
+}
+
+/**
+ * 发送对话消息并以 SSE 流式接收回复（axios 不支持流，改用 fetch + ReadableStream）。
+ * 事件帧：data:{"type":"chunk|done|error","content"?,"code"?,"message"?}
+ */
+export async function streamDialogueMessage(
+  sessionId: string,
+  content: string,
+  handlers: DialogueStreamHandlers,
+): Promise<void> {
+  const token =
+    typeof window !== 'undefined' ? sessionStorage.getItem('edu_at') : null
+  const res = await fetch(`/api/v1/ai/dialogue/${sessionId}/message`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ content }),
+  })
+  if (!res.ok || !res.body) {
+    handlers.onError?.(res.status, `HTTP ${res.status}`)
+    return
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const frames = buffer.split('\n\n')
+    buffer = frames.pop() ?? ''
+    for (const frame of frames) {
+      const dataLine = frame.split('\n').find((l) => l.startsWith('data:'))
+      if (!dataLine) continue
+      const payload = dataLine.slice(5).trim()
+      if (!payload) continue
+      try {
+        const evt = JSON.parse(payload) as {
+          type: string
+          content?: string
+          code?: number
+          message?: string
+        }
+        if (evt.type === 'chunk' && evt.content) handlers.onChunk(evt.content)
+        else if (evt.type === 'done') handlers.onDone?.()
+        else if (evt.type === 'error') handlers.onError?.(evt.code ?? 500, evt.message ?? '对话出错')
+      } catch {
+        // 忽略不完整帧
+      }
+    }
+  }
+  handlers.onDone?.()
+}
+
+export function useCreateDialogue() {
+  return useMutation({
+    mutationFn: (dto: DialogueTaskDTO) => dialogueApi.createTask(dto),
+  })
+}
+
+export function useDialogueHistory(sessionId?: string) {
+  return useQuery({
+    queryKey: ['ai', 'dialogue', 'history', sessionId],
+    queryFn: () => dialogueApi.history(sessionId as string),
+    enabled: !!sessionId,
+  })
+}
+
+export function useLessonDialogues(lessonId?: number | string) {
+  return useQuery({
+    queryKey: ['ai', 'dialogue', 'lesson', lessonId],
+    queryFn: () => dialogueApi.lessonSessions(lessonId as number | string),
+    enabled: !!lessonId,
+    staleTime: 10_000,
+  })
+}

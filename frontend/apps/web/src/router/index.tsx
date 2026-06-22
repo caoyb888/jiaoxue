@@ -35,6 +35,12 @@ const AiReviewPage = lazy(() =>
 const MindmapPage = lazy(() =>
   import('../pages/ai/MindmapPage').then((m) => ({ default: m.MindmapPage })),
 )
+const DialoguePage = lazy(() =>
+  import('../pages/ai/DialoguePage').then((m) => ({ default: m.DialoguePage })),
+)
+const DialogueOverviewPage = lazy(() =>
+  import('../pages/ai/DialogueOverviewPage').then((m) => ({ default: m.DialogueOverviewPage })),
+)
 const ExamListPage = lazy(() =>
   import('../pages/exam/ExamListPage').then((m) => ({ default: m.ExamListPage })),
 )
@@ -99,6 +105,8 @@ export function AppRouter() {
           <Route path="/exam/:publishId/review/:studentId" element={<RequireAuth><ReviewPage /></RequireAuth>} />
           <Route path="/exam/:publishId/ai-review" element={<RequireAuth><AiReviewPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/mindmap" element={<RequireAuth><MindmapPage /></RequireAuth>} />
+          <Route path="/lesson/:lessonId/ai-chat" element={<RequireAuth><DialoguePage /></RequireAuth>} />
+          <Route path="/lesson/:lessonId/ai-chat/overview" element={<RequireAuth><DialogueOverviewPage /></RequireAuth>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

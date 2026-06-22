@@ -106,4 +106,15 @@ class DialogueServiceTest {
 
         assertThat(service().history("s")).hasSize(1);
     }
+
+    @Test
+    void listByLesson_shouldDelegateToRepository() {
+        AiDialogueSession s = new AiDialogueSession();
+        s.setSessionId("sess-9");
+        when(sessionRepository.findByLessonIdOrderByUpdatedAtDesc(7L)).thenReturn(List.of(s));
+        when(messageRepository.countBySessionId("sess-9")).thenReturn(4L);
+
+        assertThat(service().listByLesson(7L)).hasSize(1);
+        assertThat(service().messageCount("sess-9")).isEqualTo(4L);
+    }
 }

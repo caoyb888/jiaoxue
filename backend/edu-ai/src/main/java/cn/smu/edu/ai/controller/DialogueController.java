@@ -6,6 +6,7 @@ import cn.smu.edu.ai.domain.dto.DialogueTaskDTO;
 import cn.smu.edu.ai.domain.model.AiRequest;
 import cn.smu.edu.ai.domain.model.ModelType;
 import cn.smu.edu.ai.domain.vo.DialogueMessageVO;
+import cn.smu.edu.ai.domain.vo.DialogueSessionSummaryVO;
 import cn.smu.edu.ai.domain.vo.DialogueTaskVO;
 import cn.smu.edu.ai.security.PromptSecurityException;
 import cn.smu.edu.ai.service.AiGatewayService;
@@ -136,6 +137,15 @@ public class DialogueController {
     public Result<List<DialogueMessageVO>> getHistory(@PathVariable String sessionId) {
         List<DialogueMessageVO> list = dialogueService.history(sessionId)
                 .stream().map(DialogueMessageVO::from).toList();
+        return Result.ok(list);
+    }
+
+    /** 教师端：某节课全班对话概览 */
+    @GetMapping("/lesson/{lessonId}/sessions")
+    public Result<List<DialogueSessionSummaryVO>> lessonSessions(@PathVariable Long lessonId) {
+        List<DialogueSessionSummaryVO> list = dialogueService.listByLesson(lessonId).stream()
+                .map(s -> DialogueSessionSummaryVO.from(s, dialogueService.messageCount(s.getSessionId())))
+                .toList();
         return Result.ok(list);
     }
 
