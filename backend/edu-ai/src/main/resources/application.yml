@@ -28,7 +28,9 @@ spring:
       port: ${REDIS_PORT:16379}
       database: 5
     mongodb:
-      uri: ${MONGO_URI:mongodb://100.84.68.115:17017/edu_ai}
+      # edu-mongo 启用鉴权（compose: root/edu_dev_2026），需带凭据与 authSource；
+      # 凭据可经 MONGO_URI 环境变量覆盖（生产走加密配置，与 MySQL 同约定）。
+      uri: ${MONGO_URI:mongodb://root:edu_dev_2026@100.84.68.115:17017/edu_ai?authSource=admin}
       # 启用注解索引自动创建（含 @Indexed TTL 索引，S6-15）
       auto-index-creation: true
   kafka:
