@@ -29,6 +29,9 @@ const MonitorDashboardPage = lazy(() =>
 const ReviewPage = lazy(() =>
   import('../pages/exam/ReviewPage').then((m) => ({ default: m.ReviewPage })),
 )
+const AiReviewPage = lazy(() =>
+  import('../pages/exam/AiReviewPage').then((m) => ({ default: m.AiReviewPage })),
+)
 const ExamListPage = lazy(() =>
   import('../pages/exam/ExamListPage').then((m) => ({ default: m.ExamListPage })),
 )
@@ -91,6 +94,7 @@ export function AppRouter() {
           <Route path="/exam/:publishId/answer" element={<RequireAuth><ExamAnswerPage /></RequireAuth>} />
           <Route path="/exam/:publishId/result" element={<RequireAuth><ExamResultPage /></RequireAuth>} />
           <Route path="/exam/:publishId/review/:studentId" element={<RequireAuth><ReviewPage /></RequireAuth>} />
+          <Route path="/exam/:publishId/ai-review" element={<RequireAuth><AiReviewPage /></RequireAuth>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
