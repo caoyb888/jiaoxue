@@ -61,3 +61,64 @@ export function useOverrideReview(publishId: number | string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'review', publishId] }),
   })
 }
+
+// ─── AI 思维导图（S6-06/11）────────────────────────────────────────────────────
+
+/** Markmap 树节点：{title|content, children} */
+export interface MindmapNode {
+  title?: string
+  content?: string
+  children?: MindmapNode[]
+}
+
+export interface MindmapVO {
+  lessonId: number
+  /** PENDING / GENERATING / DONE / FAILED */
+  genStatus: string
+  markmapJson: MindmapNode | null
+  studentVisible: boolean
+}
+
+export const mindmapApi = {
+  get: (lessonId: number | string): Promise<MindmapVO> =>
+    http.get(`/v1/ai/mindmap/${lessonId}`),
+  regenerate: (lessonId: number | string): Promise<string> =>
+    http.post(`/v1/ai/mindmap/${lessonId}/regenerate`),
+  setVisible: (lessonId: number | string, studentVisible: boolean): Promise<void> =>
+    http.put(`/v1/ai/mindmap/${lessonId}`, { studentVisible }),
+  saveContent: (lessonId: number | string, markmapJson: string): Promise<void> =>
+    http.put(`/v1/ai/mindmap/${lessonId}/content`, { markmapJson }),
+}
+
+export function useMindmap(lessonId?: number | string) {
+  return useQuery({
+    queryKey: ['ai', 'mindmap', lessonId],
+    queryFn: () => mindmapApi.get(lessonId as number | string),
+    enabled: !!lessonId,
+    staleTime: 10_000,
+  })
+}
+
+export function useRegenerateMindmap(lessonId: number | string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => mindmapApi.regenerate(lessonId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'mindmap', lessonId] }),
+  })
+}
+
+export function useSetMindmapVisible(lessonId: number | string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (studentVisible: boolean) => mindmapApi.setVisible(lessonId, studentVisible),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'mindmap', lessonId] }),
+  })
+}
+
+export function useSaveMindmapContent(lessonId: number | string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (markmapJson: string) => mindmapApi.saveContent(lessonId, markmapJson),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'mindmap', lessonId] }),
+  })
+}

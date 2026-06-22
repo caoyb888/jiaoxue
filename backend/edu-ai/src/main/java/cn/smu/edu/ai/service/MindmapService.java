@@ -66,6 +66,20 @@ public class MindmapService {
         return parsed.json();
     }
 
+    /**
+     * 保存教师手动编辑后的思维导图（覆盖式 upsert，source=EDITED）。
+     * @throws IllegalArgumentException JSON 非法
+     */
+    public void saveEdited(Long lessonId, Long teacherId, String markmapJson) {
+        try {
+            objectMapper.readTree(markmapJson);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("思维导图 JSON 格式非法");
+        }
+        saveToMongo(lessonId, teacherId, new Parsed(markmapJson, true), "EDITED");
+        log.info("教师编辑思维导图已保存: lessonId={}", lessonId);
+    }
+
     /** 校验结果 */
     private record Parsed(String json, boolean ok) {
     }

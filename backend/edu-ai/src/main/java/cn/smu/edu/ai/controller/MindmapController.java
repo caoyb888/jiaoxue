@@ -25,6 +25,7 @@ import java.util.UUID;
 public class MindmapController {
 
     private final LessonReportService reportService;
+    private final cn.smu.edu.ai.service.MindmapService mindmapService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -86,6 +87,24 @@ public class MindmapController {
         boolean visible = Boolean.TRUE.equals(body.get("studentVisible"));
         reportService.updateMindmapVisible(lessonId, visible);
         log.info("更新思维导图可见性: lessonId={}, visible={}", lessonId, visible);
+        return Result.ok();
+    }
+
+    /** 教师保存手动编辑后的思维导图 JSON（写回 Mongo + lesson_report） */
+    @OperationLog(module = "ai", operation = "编辑思维导图")
+    @PutMapping("/{lessonId}/content")
+    public Result<Void> saveContent(@PathVariable Long lessonId,
+                                    @RequestBody java.util.Map<String, String> body) {
+        String markmapJson = body.get("markmapJson");
+        if (markmapJson == null || markmapJson.isBlank()) {
+            return Result.fail(400, "markmapJson 不能为空");
+        }
+        try {
+            mindmapService.saveEdited(lessonId, UserContext.getUserId(), markmapJson);
+        } catch (IllegalArgumentException e) {
+            return Result.fail(400, e.getMessage());
+        }
+        reportService.saveMindmap(lessonId, markmapJson);
         return Result.ok();
     }
 }
