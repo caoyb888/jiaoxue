@@ -3,6 +3,7 @@ package cn.smu.edu.ai.consumer;
 import cn.smu.edu.ai.service.AiNotifyPublisher;
 import cn.smu.edu.ai.service.AiReviewService;
 import cn.smu.edu.ai.service.LessonReportService;
+import cn.smu.edu.ai.service.AiQuestionGenerateService;
 import cn.smu.edu.ai.service.LessonSummaryService;
 import cn.smu.edu.ai.service.MindmapService;
 import cn.smu.edu.common.event.AiTaskEvent;
@@ -38,6 +39,7 @@ public class AiTaskConsumer {
     private final LessonSummaryService lessonSummaryService;
     private final MindmapService mindmapService;
     private final AiReviewService aiReviewService;
+    private final AiQuestionGenerateService aiQuestionGenerateService;
     private final AiNotifyPublisher notifyPublisher;
     private final StringRedisTemplate redisTemplate;
 
@@ -130,10 +132,9 @@ public class AiTaskConsumer {
                 java.util.Map.of("publishId", event.getBizId() == null ? 0L : event.getBizId(), "count", count));
     }
 
-    /** 一键 AI 出题 — 业务逻辑在 S6-07 接入 AiQuestionGenerateService */
+    /** 一键 AI 出题（S6-07）：按 taskId 加载任务参数 → 出题入库 → WS 通知教师 */
     private void handleGenerate(AiTaskEvent event) {
-        log.info("AI出题任务受理（待 S6-07 出题服务接入）: lessonId={}, taskId={}",
-                event.getLessonId(), event.getTaskId());
+        aiQuestionGenerateService.generate(event.getTaskId());
     }
 
 }

@@ -32,6 +32,7 @@ class AiTaskConsumerTest {
     @Mock cn.smu.edu.ai.service.LessonSummaryService lessonSummaryService;
     @Mock cn.smu.edu.ai.service.MindmapService mindmapService;
     @Mock cn.smu.edu.ai.service.AiReviewService aiReviewService;
+    @Mock cn.smu.edu.ai.service.AiQuestionGenerateService aiQuestionGenerateService;
     @Mock cn.smu.edu.ai.service.AiNotifyPublisher notifyPublisher;
     @Mock StringRedisTemplate redisTemplate;
     @Mock ValueOperations<String, String> valueOps;
@@ -84,6 +85,17 @@ class AiTaskConsumerTest {
         verify(aiReviewService).reviewByPublish(500L, "t3");
         verify(notifyPublisher).notifyUser(eq(1L), eq("AI_REVIEW_DONE"), anyString(), any());
         verify(mindmapService, never()).generate(anyLong(), any(), any(), anyString());
+        verify(lessonSummaryService, never()).summarize(anyLong(), any());
+    }
+
+    @Test
+    void consume_shouldRouteGenerateToQuestionService() {
+        when(valueOps.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        AiTaskEvent ev = new AiTaskEvent("t5", null, 1L, null, "GENERATE", LocalDateTime.now(), 7L);
+
+        consumer.consumeAiTask(ev);
+
+        verify(aiQuestionGenerateService).generate("t5");
         verify(lessonSummaryService, never()).summarize(anyLong(), any());
     }
 
