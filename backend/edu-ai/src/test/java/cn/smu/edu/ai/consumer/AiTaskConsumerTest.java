@@ -31,6 +31,7 @@ class AiTaskConsumerTest {
 
     @Mock AiGatewayService aiGatewayService;
     @Mock LessonReportService reportService;
+    @Mock cn.smu.edu.ai.service.LessonSummaryService lessonSummaryService;
     @Mock cn.smu.edu.ai.service.AiReviewService aiReviewService;
     @Mock cn.smu.edu.ai.service.AiNotifyPublisher notifyPublisher;
     @Mock StringRedisTemplate redisTemplate;
@@ -50,13 +51,17 @@ class AiTaskConsumerTest {
     @Test
     void consume_shouldProcessSummary_whenFirstAcquire() {
         when(valueOps.setIfAbsent(eq("ai:task:done:t1"), eq("1"), any(Duration.class))).thenReturn(true);
-        when(aiGatewayService.chatSync(any())).thenReturn("mock");
+        when(lessonSummaryService.summarize(eq(100L), any()))
+                .thenReturn(new cn.smu.edu.ai.service.LessonSummaryService.SummaryResult(
+                        "课堂摘要", java.util.List.of("要点1", "要点2"), "[\"要点1\",\"要点2\"]"));
+        when(aiGatewayService.chatSync(any())).thenReturn("{\"title\":\"t\"}");
 
         consumer.consumeAiTask(event("t1", "SUMMARY"));
 
         verify(reportService).initReport(100L, 0);
-        verify(aiGatewayService, times(2)).chatSync(any()); // 摘要 + 思维导图
-        verify(reportService).saveAiContent(eq(100L), anyString(), anyString());
+        verify(lessonSummaryService).loadTranscript(100L);
+        verify(aiGatewayService, times(1)).chatSync(any()); // 思维导图（摘要在 LessonSummaryService 内部）
+        verify(reportService).saveAiContent(eq(100L), eq("课堂摘要"), eq("[\"要点1\",\"要点2\"]"), anyString());
     }
 
     @Test

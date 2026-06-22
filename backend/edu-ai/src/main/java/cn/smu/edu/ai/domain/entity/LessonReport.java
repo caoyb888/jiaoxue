@@ -28,6 +28,8 @@ public class LessonReport {
     private Integer slideCount;
 
     private String aiSummary;
+    /** AI 抽取的课堂关键点（JSON 字符串数组） */
+    private String aiKeyPoints;
     private String aiMindmapJson;
 
     private Integer mindmapVisible;

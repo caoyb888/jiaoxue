@@ -6,7 +6,7 @@
     <select id="selectByLessonId" resultType="cn.smu.edu.ai.domain.entity.LessonReport">
         SELECT id, lesson_id, attend_count, absent_count, attend_rate,
                interact_count, quiz_count, duration_min, slide_count,
-               ai_summary, ai_mindmap_json, mindmap_visible, summary_visible,
+               ai_summary, ai_key_points, ai_mindmap_json, mindmap_visible, summary_visible,
                gen_status, created_at, updated_at
         FROM lesson_report
         WHERE lesson_id = #{lessonId}
@@ -16,9 +16,25 @@
     <update id="updateAiContent">
         UPDATE lesson_report
         SET ai_summary      = #{aiSummary},
+            ai_key_points   = #{aiKeyPoints},
             ai_mindmap_json = #{aiMindmapJson},
             gen_status      = #{genStatus},
             updated_at      = NOW()
+        WHERE lesson_id = #{lessonId}
+    </update>
+
+    <update id="updateMindmap">
+        UPDATE lesson_report
+        SET ai_mindmap_json = #{aiMindmapJson},
+            gen_status      = #{genStatus},
+            updated_at      = NOW()
+        WHERE lesson_id = #{lessonId}
+    </update>
+
+    <update id="updateGenStatus">
+        UPDATE lesson_report
+        SET gen_status = #{genStatus},
+            updated_at = NOW()
         WHERE lesson_id = #{lessonId}
     </update>
 
