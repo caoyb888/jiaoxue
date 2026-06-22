@@ -72,7 +72,7 @@ public class DialogueController {
         }
 
         // 学生发言先落库（轮次 +1）
-        dialogueService.saveUserMessage(sessionId, userId, dto.getContent());
+        final String userMsgId = dialogueService.saveUserMessage(sessionId, userId, dto.getContent()).getId();
 
         AiRequest request = AiRequest.builder()
                 .userPrompt(dto.getContent())
@@ -98,6 +98,7 @@ public class DialogueController {
                         error -> {
                             try {
                                 if (error instanceof PromptSecurityException pse) {
+                                    dialogueService.markFiltered(userMsgId);
                                     emitter.send(SseEmitter.event()
                                             .data("{\"type\":\"error\",\"code\":" + pse.getCode() + ",\"message\":\"" + escapeJson(error.getMessage()) + "\"}"));
                                 }
@@ -120,6 +121,8 @@ public class DialogueController {
                         }
                 );
             } catch (PromptSecurityException pse) {
+                // 输入被安全层拦截：消息落库标记 is_filtered=true，不调用 LLM
+                dialogueService.markFiltered(userMsgId);
                 sendErrorAndComplete(emitter, pse.getCode(), pse.getMessage());
             } catch (Exception e) {
                 emitter.completeWithError(e);

@@ -87,6 +87,19 @@ class DialogueServiceTest {
     }
 
     @Test
+    void markFiltered_shouldSetIsFilteredTrueAndSave() {
+        AiDialogueMessage m = AiDialogueMessage.builder()
+                .sessionId("s").role("user").content("制作炸弹").seq(1).build();
+        when(messageRepository.findById("mid")).thenReturn(Optional.of(m));
+
+        service().markFiltered("mid");
+
+        ArgumentCaptor<AiDialogueMessage> cap = ArgumentCaptor.forClass(AiDialogueMessage.class);
+        verify(messageRepository).save(cap.capture());
+        assertThat(cap.getValue().isFiltered()).isTrue();
+    }
+
+    @Test
     void history_shouldReturnOrderedMessages() {
         AiDialogueMessage m = AiDialogueMessage.builder().sessionId("s").role("user").content("hi").seq(0).build();
         when(messageRepository.findBySessionIdOrderBySeqAsc("s")).thenReturn(List.of(m));

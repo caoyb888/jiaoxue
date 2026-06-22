@@ -41,6 +41,18 @@ public class PromptSecurityFilter {
             Pattern.CASE_INSENSITIVE
     );
 
+    // 中文越权/覆盖指令特征（忽略上面所有规则、无视以上指令、忘记之前的设定 等）
+    private static final Pattern CN_OVERRIDE_PATTERN = Pattern.compile(
+            "(忽略|忽视|无视|忘记|绕过|跳过|越过|不要遵守|不再遵守).{0,12}?" +
+            "(规则|指令|要求|以上|上面|之前|前面|系统|提示词|限制|设定|约束|身份)"
+    );
+
+    // 危险/违规内容特征（武器、爆炸物、毒品等，作为默认兜底，敏感词库可在 Nacos 扩充）
+    private static final Pattern DANGER_PATTERN = Pattern.compile(
+            "(制作|制造|怎么做|怎样做|如何做|如何制作|怎样制作|合成).{0,8}?" +
+            "(炸弹|爆炸物|炸药|枪支|枪械|毒品|冰毒|病毒|生化武器|武器)"
+    );
+
     /** 敏感词列表，优先从 Nacos 配置中心获取，fallback 为默认空列表 */
     @Value("${ai.security.sensitive-words:}")
     private List<String> sensitiveWords;
@@ -62,14 +74,21 @@ public class PromptSecurityFilter {
             }
         }
 
-        // 2. 越权指令检测
+        // 2. 越权指令检测（中英文注入/覆盖模式）
         if (userContent != null && (OVERRIDE_PATTERN.matcher(userContent).find()
-                || INJECTION_PATTERN.matcher(userContent).find())) {
+                || INJECTION_PATTERN.matcher(userContent).find()
+                || CN_OVERRIDE_PATTERN.matcher(userContent).find())) {
             log.warn("Prompt 安全拦截 — 越权指令注入: userId={}", request.getUserId());
             throw new PromptSecurityException("检测到指令注入模式，请求已被拦截");
         }
 
-        // 3. 强制前置 SYSTEM_GUARD（拼接在教师自定义规则之前，不可被覆盖）
+        // 3. 危险/违规内容兜底检测
+        if (userContent != null && DANGER_PATTERN.matcher(userContent).find()) {
+            log.warn("Prompt 安全拦截 — 危险违规内容: userId={}", request.getUserId());
+            throw new PromptSecurityException("输入内容涉及违规危险信息，请求已被拦截");
+        }
+
+        // 4. 强制前置 SYSTEM_GUARD（拼接在教师自定义规则之前，不可被覆盖）
         String teacherSystem = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
         String safeSystemPrompt = SYSTEM_GUARD + "\n\n【教师自定义规则】\n" + sanitizeOverride(teacherSystem);
         request.setSystemPrompt(safeSystemPrompt);
@@ -95,6 +114,7 @@ public class PromptSecurityFilter {
     private String sanitizeOverride(String prompt) {
         String cleaned = OVERRIDE_PATTERN.matcher(prompt).replaceAll("[已过滤]");
         cleaned = INJECTION_PATTERN.matcher(cleaned).replaceAll("[已过滤]");
+        cleaned = CN_OVERRIDE_PATTERN.matcher(cleaned).replaceAll("[已过滤]");
         return cleaned;
     }
 }

@@ -5,6 +5,7 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +35,10 @@ public class AiDialogueMessage {
 
     /** 会话内顺序号（从 0 起） */
     private int seq;
+
+    /** 是否被 Prompt 安全层拦截（C4：违规输入落库标记，不调用 LLM） */
+    @Field("is_filtered")
+    private boolean filtered;
 
     @Indexed
     private LocalDateTime createdAt;
