@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <!--
+      S6-14 AI 任务异步队列压测计划
+      目标：模拟「下课高峰」——10 节课同时结束，集中向 edu.ai.tasks 投递 AI 任务，
+            验证 AiTaskConsumer（concurrency=3）平滑消费、不积压，≤5 分钟全部完成。
+      触发接口：POST /api/v1/ai/mindmap/{lessonId}/regenerate
+               （经网关 → edu-ai → KafkaTemplate.send(edu.ai.tasks, MINDMAP)
+                → AiTaskConsumer(concurrency=3) → handleMindmap → mock LLM → 落库 gen_status=2）
+      通过标准（C3 验收）：
+        - 触发接口同步响应 P99 ≤ 200ms（仅入队，不等 LLM）
+        - 10 个任务 Kafka 1 秒内可消费，consumer lag 归零
+        - 10 节课 lesson_report.gen_status 在 5 分钟内全部变为 2（DONE）
+        - Redis 幂等键 ai:task:done:{taskId} 命中，无重复处理
+      备注：mock-mode 下 LLM 瞬时返回，本计划主要验证「队列调度 + 削峰 + 不积压」，
+            真实 LLM 时长在 docs/perf-test-reports/S6-14-ai-task-async-report.md 中估算。
+      异步落库结果（gen_status）由带外校验：见 S6-14-run.sh 或报告中的轮询 SQL。
+    -->
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="AI任务异步队列压测 S6-14" enabled="true">
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.arguments" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="TARGET_HOST" elementType="Argument">
+            <stringProp name="Argument.name">TARGET_HOST</stringProp>
+            <stringProp name="Argument.value">100.84.68.115</stringProp>
+          </elementProp>
+          <elementProp name="TARGET_PORT" elementType="Argument">
+            <stringProp name="Argument.name">TARGET_PORT</stringProp>
+            <stringProp name="Argument.value">18080</stringProp>
+          </elementProp>
+          <!-- 模拟同时结束的课堂数（下课高峰）-->
+          <elementProp name="LESSON_COUNT" elementType="Argument">
+            <stringProp name="Argument.name">LESSON_COUNT</stringProp>
+            <stringProp name="Argument.value">10</stringProp>
+          </elementProp>
+          <!-- 压测用课堂ID起点（高位避让真实数据）-->
+          <elementProp name="LESSON_BASE" elementType="Argument">
+            <stringProp name="Argument.name">LESSON_BASE</stringProp>
+            <stringProp name="Argument.value">90001</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <!-- ============================================================
+           阶段0：预热 - 教师登录获取 Token
+           ============================================================ -->
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup"
+                        testname="预热 - 教师登录" enabled="true">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">0</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">stopTest</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                          testname="教师登录" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{"username":"teacher01","password":"edu2026@test"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${TARGET_HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${TARGET_PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/auth/login</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Content-Type JSON" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <JSONPathExtractor guiclass="JSONPathExtractorGui" testname="提取教师Token" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">TEACHER_TOKEN</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExprs">$.data.accessToken</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">MISSING_TOKEN</stringProp>
+          </JSONPathExtractor>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+
+      <!-- ============================================================
+           阶段1：下课高峰 - 10 节课同时触发 AI 任务（几乎并发）
+           ============================================================ -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup"
+                   testname="下课高峰 - 10节课同时结束" enabled="true">
+        <intProp name="ThreadGroup.num_threads">${LESSON_COUNT}</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <!-- 每个线程对应一个唯一 lessonId：LESSON_BASE + (threadNum-1) -->
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="课堂ID计数器" enabled="true">
+          <stringProp name="CounterConfig.start">${LESSON_BASE}</stringProp>
+          <stringProp name="CounterConfig.incr">1</stringProp>
+          <stringProp name="CounterConfig.name">LESSON_ID</stringProp>
+          <boolProp name="CounterConfig.per_user">true</boolProp>
+        </CounterConfig>
+        <hashTree/>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                          testname="触发课堂AI任务(思维导图)" enabled="true">
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">{}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${TARGET_HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${TARGET_PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">http</stringProp>
+          <stringProp name="HTTPSampler.path">/api/v1/ai/mindmap/${LESSON_ID}/regenerate</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Teacher Auth" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="Authorization" elementType="Header">
+                <stringProp name="Header.name">Authorization</stringProp>
+                <stringProp name="Header.value">Bearer ${TEACHER_TOKEN}</stringProp>
+              </elementProp>
+              <elementProp name="Content-Type" elementType="Header">
+                <stringProp name="Header.name">Content-Type</stringProp>
+                <stringProp name="Header.value">application/json</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+          <!-- C3：入队接口必须秒回 -->
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="HTTP 200 断言" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">8</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="入队耗时 ≤ 200ms" enabled="true">
+            <stringProp name="DurationAssertion.duration">200</stringProp>
+          </DurationAssertion>
+          <hashTree/>
+        </hashTree>
+      </hashTree>
+
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="汇总报告" enabled="true">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <threadName>true</threadName>
+            <bytes>true</bytes>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
