@@ -79,6 +79,18 @@ public class DialogueService {
         return messageRepository.findBySessionIdOrderBySeqAsc(sessionId);
     }
 
+    /** 将消息标记为安全拦截（C4：is_filtered=true） */
+    public void markFiltered(String messageId) {
+        if (messageId == null) {
+            return;
+        }
+        messageRepository.findById(messageId).ifPresent(m -> {
+            m.setFiltered(true);
+            messageRepository.save(m);
+            log.warn("对话消息被安全拦截标记: messageId={}, sessionId={}", messageId, m.getSessionId());
+        });
+    }
+
     private AiDialogueMessage saveMessage(String sessionId, Long userId, String role, String content) {
         int seq = (int) messageRepository.countBySessionId(sessionId);
         AiDialogueMessage msg = AiDialogueMessage.builder()
