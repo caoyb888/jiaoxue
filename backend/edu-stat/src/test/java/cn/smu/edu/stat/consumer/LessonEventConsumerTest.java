@@ -9,6 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cn.smu.edu.stat.service.LessonEventWriter;
+import cn.smu.edu.stat.service.RealtimeStatService;
 
 import java.util.Map;
 
@@ -21,6 +22,9 @@ class LessonEventConsumerTest {
 
     @Mock
     LessonEventWriter writer;
+
+    @Mock
+    RealtimeStatService realtimeStatService;
 
     @InjectMocks
     LessonEventConsumer consumer;
@@ -38,6 +42,7 @@ class LessonEventConsumerTest {
         assertThat(row.getEventType()).isEqualTo("BARRAGE");
         assertThat(row.getLessonId()).isEqualTo(100L);
         assertThat(row.getStudentId()).isEqualTo(7L);
+        verify(realtimeStatService).record(event, "BARRAGE");
     }
 
     @Test
@@ -52,6 +57,7 @@ class LessonEventConsumerTest {
     void consume_shouldIgnoreUnknownEventType() {
         consumer.consume(new TeachingEvent("ROLL_CALL", 1L, 2L, Map.of()));
         verify(writer, never()).offer(org.mockito.ArgumentMatchers.any());
+        verify(realtimeStatService, never()).record(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
