@@ -144,17 +144,31 @@ smart-edu-platform/
 
 > 本机为代码仓库主体，内网机通过 `git push` 自动同步工作目录（`receive.denyCurrentBranch = updateInstead`）。
 
+> **⚠️ 关键约束（曾踩坑）：`updateInstead` 只会更新内网机“当前检出（checked-out）的那个分支”的工作目录文件。**
+> 若内网机检出在 `main`，而你 `git push onlyserver develop`，则**只更新 develop 的 ref、不会更新磁盘文件** —— 内网机源码仍停留在旧分支，`git log` 看似落后、重新构建会编译到旧代码。
+>
+> 因此推送前务必确认内网机检出分支与推送分支一致：
+> ```bash
+> # 查看内网机当前检出分支
+> ssh onlyserver 'cd ~/smart-edu && git rev-parse --abbrev-ref HEAD'
+> # 如不一致，先在内网机切到目标分支（要求工作树干净），之后 push 才会自动更新文件
+> ssh onlyserver 'cd ~/smart-edu && git checkout develop'
+> ```
+> 当前约定：内网机长期检出 **`develop`**（集成分支），日常 `git push onlyserver develop` 即自动同步文件。
+
 ```bash
 # 首次建立同步关系（已完成，无需重复执行）
 # git remote add onlyserver onlyserver:~/smart-edu
-# ssh onlyserver 'cd ~/smart-edu && git init && git config receive.denyCurrentBranch updateInstead && git checkout feature/sprint5'
+# ssh onlyserver 'cd ~/smart-edu && git init && git config receive.denyCurrentBranch updateInstead && git checkout develop'
 
-# 日常同步：commit 后推送到内网机（内网机工作目录自动更新，无需登录）
-git push onlyserver feature/sprint5
+# 日常同步：commit 后推送到内网机（内网机须检出 develop，工作目录才会自动更新）
+git push onlyserver develop
 
-# 同时推送多个分支（main + 当前功能分支）
-git push onlyserver main feature/sprint5
+# 推送后核对内网机已更新到最新提交
+ssh onlyserver 'cd ~/smart-edu && git log --oneline -1'
 ```
+
+> **同步代码 ≠ 重新部署。** `git push` 只更新内网机源码文件，**不会重建 jar / 重启服务**。代码改动要在内网机生效，必须重新构建并重启对应服务（见下方“重建并重启微服务”）。
 
 **部署到内网机常用命令：**
 
@@ -171,6 +185,34 @@ ssh onlyserver 'cd ~/smart-edu && docker compose -f infra/docker-compose.dev.yml
 # 查看内网机服务日志
 ssh onlyserver 'docker logs -f edu-auth --tail 100'
 ```
+
+**在内网机重建并重启微服务（代码改动生效）：**
+
+> 内网机已装 Maven（`/opt/maven`，不在默认 PATH，需显式导出）。微服务以 `java -jar` 方式运行（非容器），日志在 `~/.edu-dev/logs/`、pidfile 在 `~/.edu-dev/pids/`。
+
+```bash
+# 1) 在内网机用最新源码重建（单个服务，-am 连带 edu-common）
+ssh onlyserver 'export PATH=/opt/maven/bin:$PATH && cd ~/smart-edu/backend \
+  && mvn -q -pl edu-ai -am package -DskipTests --no-transfer-progress'
+# 全量重建（老 CPU 较慢，可并行）：mvn -q -T 1C clean package -DskipTests
+
+# 2) 停旧进程（按 jar 名 pkill，避免 pidfile 过期）
+ssh onlyserver "pkill -f 'edu-ai-1.0.0-SNAPSHOT.jar'"
+
+# 3) 起新进程（setsid 让 ssh 不被后台进程挂住 channel；标准启动参数）
+ssh onlyserver 'cd ~/smart-edu/backend && setsid java -Xms256m -Xmx512m \
+  -Dspring.profiles.active=dev -Dspring.cloud.nacos.config.import-check.enabled=false \
+  -jar edu-ai/target/edu-ai-1.0.0-SNAPSHOT.jar \
+  > ~/.edu-dev/logs/edu-ai.log 2>&1 </dev/null &'
+
+# 4) 验证（约 30~60s 启动）
+ssh onlyserver 'curl -s http://localhost:8087/actuator/health'
+
+# 一键全量重建+重启（含中间件检查，跳过 seed/前端）
+ssh onlyserver 'bash ~/smart-edu/infra/scripts/start-all.sh --backend-only --skip-seed'
+```
+
+> **dev 登录拿 token（验证联调）：** 测试账号手机号存 `sys_user.phone_cipher`（dev 为明文）；验证码写 Redis `sms:code:{phone}`（默认 `123456`，见 `infra/scripts/reset-sms-codes.sh`）；调用 `POST /api/v1/auth/login/phone`（body `{phone, code}`，**非** `/auth/login`）取 `accessToken`。
 
 ### 3.1 前置依赖
 
