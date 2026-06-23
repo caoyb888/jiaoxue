@@ -4,6 +4,7 @@ import cn.smu.edu.common.constant.KafkaTopic;
 import cn.smu.edu.common.event.TeachingEvent;
 import cn.smu.edu.stat.domain.entity.LessonEventLog;
 import cn.smu.edu.stat.service.LessonEventWriter;
+import cn.smu.edu.stat.service.RealtimeStatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -17,7 +18,8 @@ import java.util.Map;
  *
  * <p>消费 {@code edu.teaching.events}（concurrency=5，CLAUDE.md 限定），
  * 将业务事件类型归一为 ClickHouse 事件桶（ATTEND/BARRAGE/QUESTION/SCORE/SLIDE），
- * 入 {@link LessonEventWriter} 缓冲队列批量落库。
+ * 入 {@link LessonEventWriter} 缓冲队列批量落库；同一事件再喂 {@link RealtimeStatService}
+ * 维护 Redis 5 分钟滑动窗口的实时聚合（S7-02），供大屏/课堂实时 API 读取。
  */
 @Slf4j
 @Component
@@ -36,6 +38,7 @@ public class LessonEventConsumer {
     private static final int MAX_VALUE_LEN = 512;
 
     private final LessonEventWriter writer;
+    private final RealtimeStatService realtimeStatService;
 
     @KafkaListener(topics = KafkaTopic.TEACHING_EVENTS,
                    groupId = "stat-lesson-event",
@@ -62,6 +65,7 @@ public class LessonEventConsumer {
                 .eventValue(truncate(payload))
                 .build();
         writer.offer(row);
+        realtimeStatService.record(event, bucket);
     }
 
     private static Long asLong(Map<String, Object> payload, String key) {
