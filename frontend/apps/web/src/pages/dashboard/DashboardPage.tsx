@@ -69,6 +69,14 @@ const NAV_ITEMS: NavItem[] = [
     color: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
   },
   {
+    label: '教学预警',
+    href: '/stat/warn',
+    icon: '⚠️',
+    description: '低考勤、零活跃、频繁缺席预警，一键处理',
+    roles: ['ROLE_ADMIN'],
+    color: 'bg-amber-50 border-amber-200 hover:bg-amber-100',
+  },
+  {
     label: '用户管理',
     href: '/admin/users',
     icon: '👥',

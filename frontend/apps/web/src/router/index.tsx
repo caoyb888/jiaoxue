@@ -9,6 +9,7 @@ const CourseListPage = lazy(() => import('../pages/course/CourseListPage'))
 const ClassroomPage = lazy(() => import('../pages/course/ClassroomPage'))
 const MaterialManagePage = lazy(() => import('../pages/course/MaterialManagePage'))
 const ClassHistoryPage = lazy(() => import('../pages/stat/ClassHistoryPage'))
+const WarnListPage = lazy(() => import('../pages/stat/WarnListPage'))
 const InteractionEntryPage = lazy(() => import('../pages/interaction/InteractionEntryPage'))
 const AttendancePage = lazy(() => import('../pages/interaction/AttendancePage'))
 const StudentAttendPage = lazy(() => import('../pages/interaction/StudentAttendPage'))
@@ -90,6 +91,7 @@ export function AppRouter() {
           <Route path="/materials" element={<RequireAuth><MaterialManagePage /></RequireAuth>} />
           {/* Sprint 7 教学统计 */}
           <Route path="/stat/class-history" element={<RequireAuth><ClassHistoryPage /></RequireAuth>} />
+          <Route path="/stat/warn" element={<RequireAuth><WarnListPage /></RequireAuth>} />
           {/* Sprint 3 互动教学路由 */}
           <Route path="/interaction" element={<RequireAuth><InteractionEntryPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/attendance" element={<RequireAuth><AttendancePage /></RequireAuth>} />
