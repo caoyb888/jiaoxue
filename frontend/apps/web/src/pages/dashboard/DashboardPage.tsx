@@ -61,6 +61,14 @@ const NAV_ITEMS: NavItem[] = [
     color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
   },
   {
+    label: '教学统计',
+    href: '/stat/class-history',
+    icon: '📊',
+    description: '查看教学班签到、弹幕、提问等互动趋势',
+    roles: ['ROLE_ADMIN', 'ROLE_TEACHER'],
+    color: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
+  },
+  {
     label: '用户管理',
     href: '/admin/users',
     icon: '👥',
