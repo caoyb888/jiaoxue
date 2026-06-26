@@ -2,6 +2,8 @@ package cn.smu.edu.stat.service.impl;
 
 import cn.smu.edu.stat.domain.vo.ClassDailyStatVO;
 import cn.smu.edu.stat.domain.vo.ClassHistoryVO;
+import cn.smu.edu.stat.domain.vo.DeptHistoryVO;
+import cn.smu.edu.stat.domain.vo.DeptPeriodStatVO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -70,5 +72,59 @@ class HistoryStatServiceImplTest {
         verify(ps).setDate(1, Date.valueOf(today.minusDays(29)));
         verify(ps).setDate(2, Date.valueOf(today));
         verify(ps).setLong(3, 42L);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deptHistory_week_shouldUseToMondayBucketAndPartitionKey() {
+        DeptPeriodStatVO bucket = new DeptPeriodStatVO("2026-06-22", 4, 2, 80, 40, 6, 4, 20, 70);
+        when(clickHouseJdbcTemplate.query(anyString(), any(PreparedStatementSetter.class), any(RowMapper.class)))
+                .thenReturn(List.of(bucket));
+
+        HistoryStatServiceImpl service = new HistoryStatServiceImpl(clickHouseJdbcTemplate);
+        DeptHistoryVO vo = service.deptHistory(3L, "week", 30);
+
+        assertThat(vo.deptId()).isEqualTo(3L);
+        assertThat(vo.period()).isEqualTo("week");
+        assertThat(vo.buckets()).containsExactly(bucket);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(clickHouseJdbcTemplate).query(sqlCaptor.capture(), any(PreparedStatementSetter.class), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        // week → toMonday 时间桶；WHERE 带 stat_date 分区键 + dept_id
+        assertThat(sql).contains("toMonday(stat_date)");
+        assertThat(sql).contains("WHERE stat_date >= ? AND stat_date <= ? AND dept_id = ?");
+        assertThat(sql).contains("GROUP BY period_start");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deptHistory_month_shouldUseToStartOfMonthBucket() {
+        when(clickHouseJdbcTemplate.query(anyString(), any(PreparedStatementSetter.class), any(RowMapper.class)))
+                .thenReturn(List.of());
+
+        HistoryStatServiceImpl service = new HistoryStatServiceImpl(clickHouseJdbcTemplate);
+        service.deptHistory(3L, "month", 90);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(clickHouseJdbcTemplate).query(sqlCaptor.capture(), any(PreparedStatementSetter.class), any(RowMapper.class));
+        assertThat(sqlCaptor.getValue()).contains("toStartOfMonth(stat_date)");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void deptHistory_day_shouldUsePlainStatDateBucket() {
+        when(clickHouseJdbcTemplate.query(anyString(), any(PreparedStatementSetter.class), any(RowMapper.class)))
+                .thenReturn(List.of());
+
+        HistoryStatServiceImpl service = new HistoryStatServiceImpl(clickHouseJdbcTemplate);
+        service.deptHistory(3L, "day", 7);
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(clickHouseJdbcTemplate).query(sqlCaptor.capture(), any(PreparedStatementSetter.class), any(RowMapper.class));
+        String sql = sqlCaptor.getValue();
+        // day 粒度不使用周/月桶函数
+        assertThat(sql).doesNotContain("toMonday").doesNotContain("toStartOfMonth");
+        assertThat(sql).contains("toString(stat_date)");
     }
 }
