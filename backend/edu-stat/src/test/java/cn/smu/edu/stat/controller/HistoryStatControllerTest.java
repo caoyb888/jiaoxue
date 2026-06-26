@@ -2,6 +2,8 @@ package cn.smu.edu.stat.controller;
 
 import cn.smu.edu.stat.domain.vo.ClassDailyStatVO;
 import cn.smu.edu.stat.domain.vo.ClassHistoryVO;
+import cn.smu.edu.stat.domain.vo.DeptHistoryVO;
+import cn.smu.edu.stat.domain.vo.DeptPeriodStatVO;
 import cn.smu.edu.stat.service.HistoryStatService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,5 +76,46 @@ class HistoryStatControllerTest {
                 .andExpect(status().isOk());
 
         verify(historyStatService).classHistory(7L, 1);
+    }
+
+    @Test
+    void deptHistory_shouldReturnResultWrappedVO_withDefaultDayPeriod() throws Exception {
+        DeptPeriodStatVO bucket = new DeptPeriodStatVO("2026-06-25", 4, 2, 80, 40, 6, 4, 20, 70);
+        when(historyStatService.deptHistory(3L, "day", 30))
+                .thenReturn(new DeptHistoryVO(3L, "day", "2026-05-27", "2026-06-25", List.of(bucket)));
+
+        mockMvc.perform(get("/api/v1/stat/history/dept/3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.deptId").value(3))
+                .andExpect(jsonPath("$.data.period").value("day"))
+                .andExpect(jsonPath("$.data.buckets[0].periodStart").value("2026-06-25"))
+                .andExpect(jsonPath("$.data.buckets[0].classCount").value(2))
+                .andExpect(jsonPath("$.data.buckets[0].activeStudentCount").value(70));
+
+        verify(historyStatService).deptHistory(3L, "day", 30);
+    }
+
+    @Test
+    void deptHistory_shouldPassThroughValidWeekPeriod() throws Exception {
+        when(historyStatService.deptHistory(eq(3L), eq("week"), eq(60)))
+                .thenReturn(new DeptHistoryVO(3L, "week", "2026-04-27", "2026-06-25", List.of()));
+
+        mockMvc.perform(get("/api/v1/stat/history/dept/3").param("period", "week").param("days", "60"))
+                .andExpect(status().isOk());
+
+        verify(historyStatService).deptHistory(3L, "week", 60);
+    }
+
+    @Test
+    void deptHistory_shouldFallbackIllegalPeriodToDay() throws Exception {
+        when(historyStatService.deptHistory(eq(3L), eq("day"), eq(30)))
+                .thenReturn(new DeptHistoryVO(3L, "day", "2026-05-27", "2026-06-25", List.of()));
+
+        mockMvc.perform(get("/api/v1/stat/history/dept/3").param("period", "year' OR 1=1"))
+                .andExpect(status().isOk());
+
+        // 非法 period（含注入尝试）被白名单兜底为 day
+        verify(historyStatService).deptHistory(3L, "day", 30);
     }
 }
