@@ -27,6 +27,11 @@ spring:
       host: ${REDIS_HOST:100.84.68.115}
       port: ${REDIS_PORT:16379}
       database: 7
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDR:100.84.68.115:19092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 jwxt:
   # 当前生效的教务厂商适配器：zhengfang / qiangzhi / stub（dev 默认 stub）
