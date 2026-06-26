@@ -28,6 +28,29 @@ spring:
       port: ${REDIS_PORT:16379}
       database: 7
 
+jwxt:
+  # 当前生效的教务厂商适配器：zhengfang / qiangzhi / stub（dev 默认 stub）
+  vendor: ${JWXT_VENDOR:stub}
+  sync:
+    batch-size: ${JWXT_SYNC_BATCH:500}
+  zhengfang:
+    base-url: ${JWXT_ZHENGFANG_URL:}
+  qiangzhi:
+    base-url: ${JWXT_QIANGZHI_URL:}
+
+xxl:
+  job:
+    admin:
+      addresses: ${XXL_JOB_ADMIN:http://100.84.68.115:18160/xxl-job-admin}
+    access-token: ${XXL_JOB_TOKEN:edu-xxljob-token-2026}
+    executor:
+      appname: edu-jwxt
+      address:
+      ip: ${XXL_JOB_EXECUTOR_IP:}
+      port: ${XXL_JOB_EXECUTOR_PORT:9989}
+      logpath: ${XXL_JOB_LOGPATH:/tmp/edu-xxl-job/jobhandler}
+      logretentiondays: 7
+
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
