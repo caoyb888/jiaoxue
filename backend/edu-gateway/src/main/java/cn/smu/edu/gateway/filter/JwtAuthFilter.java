@@ -39,6 +39,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login/**",
             "/api/v1/auth/sms/**",
             "/api/v1/auth/wechat/**",
+            // 数据大屏（无人值守展示）只读聚合统计：无 PII，免登录展示（S7-12）
+            "/api/v1/stat/realtime/**",
+            "/api/v1/stat/history/dept/**",
             "/actuator/**",
             "/doc.html",
             "/swagger-ui/**",
