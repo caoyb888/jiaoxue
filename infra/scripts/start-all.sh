@@ -152,7 +152,7 @@ nacos_publish "edu-stat-dev.yaml" "DEFAULT_GROUP" "
 clickhouse:
   url: jdbc:clickhouse://100.84.68.115:18123/edu_stat_db
   username: default
-  password: edu_ch_2026
+  password: edu_dev_2026
 spring:
   data:
     redis:

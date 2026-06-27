@@ -46,7 +46,7 @@ spring:
 clickhouse:
   url: jdbc:clickhouse://${CH_HOST:100.84.68.115}:${CH_PORT:18123}/edu_stat_db
   username: ${CH_USER:default}
-  password: ${CH_PASS:edu_ch_2026}
+  password: ${CH_PASS:edu_dev_2026}
 
 xxl:
   job:
