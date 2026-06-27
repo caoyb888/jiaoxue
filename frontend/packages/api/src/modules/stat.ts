@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { http } from '../client'
 
 // ─── 统计分析 API（S7 数据大屏 / 历史图表）──────────────────────────────────────
@@ -117,4 +117,67 @@ export function useDeptRanking(deptIds: number[], days = 1) {
   })
   items.sort((a, b) => b.activeStudentCount - a.activeStudentCount)
   return { items, isLoading: results.some((r) => r.isLoading) }
+}
+
+// ─── 教学预警（S7-07 → S7-14 列表页）──────────────────────────────────────────
+
+/** 预警事件视图（对应后端 WarnVO）。 */
+export interface WarnVO {
+  id: number
+  warnType: string
+  targetType: string
+  targetId: number
+  lessonId: number | null
+  classId: number | null
+  deptId: number | null
+  teacherId: number | null
+  statDate: string
+  metricValue: number
+  thresholdValue: number
+  detail: string | null
+  status: number
+  createdAt: string | null
+}
+
+/** 后端 PageResult 信封（list/total/page/size/pages）。 */
+export interface StatPageResult<T> {
+  list: T[]
+  total: number
+  page: number
+  size: number
+  pages: number
+}
+
+export interface WarnQueryParams {
+  warnType?: string
+  status?: number
+  deptId?: number
+  page?: number
+  size?: number
+}
+
+export const warnApi = {
+  list: (params: WarnQueryParams): Promise<StatPageResult<WarnVO>> =>
+    http.get<WarnQueryParams, StatPageResult<WarnVO>>('/v1/stat/warn/list', { params }),
+  /** 标记处理状态：1已处理 / 2忽略。 */
+  handle: (id: number, status: number): Promise<void> =>
+    http.put<void, void>(`/v1/stat/warn/${id}/handle`, null, { params: { status } }),
+}
+
+export function useWarnList(params: WarnQueryParams) {
+  return useQuery({
+    queryKey: ['stat', 'warn', 'list', params],
+    queryFn: () => warnApi.list(params),
+    staleTime: 5_000,
+  })
+}
+
+export function useHandleWarn() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: number }) => warnApi.handle(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stat', 'warn', 'list'] })
+    },
+  })
 }
