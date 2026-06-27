@@ -2,7 +2,7 @@
 -- 运行环境：onlyserver 容器 edu-clickhouse（ClickHouse 22.8），库 edu_stat_db
 -- 运行方式：
 --   ssh onlyserver 'docker exec -i edu-clickhouse clickhouse-client --user default \
---     --password edu_ch_2026 --multiquery < /dev/stdin' < docs/perf-test/S7-15-clickhouse-class-ranking.sql
+--     --password edu_dev_2026 --multiquery < /dev/stdin' < docs/perf-test/S7-15-clickhouse-class-ranking.sql
 -- 或逐段用 clickhouse-client --query 执行（见 docs/perf-test-reports/S7-15-clickhouse-perf-report.md）
 
 -- ── 1) 造数：200 万行，2000 个班级，跨 180 天（7 个月分区）─────────────────────
