@@ -11,6 +11,7 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface LessonLiveMapper {
 
-    @Select("SELECT live_mode, teacher_id, status FROM lesson WHERE id = #{lessonId} AND is_deleted = 0")
+    @Select("SELECT live_mode, teacher_id, status, replay_visible FROM lesson "
+            + "WHERE id = #{lessonId} AND is_deleted = 0")
     LessonLiveInfo selectLiveInfo(@Param("lessonId") Long lessonId);
 }

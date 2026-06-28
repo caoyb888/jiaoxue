@@ -1,7 +1,9 @@
 package cn.smu.edu.live.controller;
 
 import cn.smu.edu.live.domain.vo.LiveConfigVO;
+import cn.smu.edu.live.domain.vo.ReplayVO;
 import cn.smu.edu.live.service.LiveService;
+import cn.smu.edu.live.service.ReplayService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +13,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,12 +25,14 @@ class LiveControllerTest {
 
     @Mock
     LiveService liveService;
+    @Mock
+    ReplayService replayService;
 
     MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new LiveController(liveService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new LiveController(liveService, replayService)).build();
     }
 
     @Test
@@ -52,5 +58,16 @@ class LiveControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.webrtcEnabled").value(true))
                 .andExpect(jsonPath("$.data.pushUrl").value("rtmp://srs/live/lesson-2-x"));
+    }
+
+    @Test
+    void replay_shouldReturnAvailableUrl() throws Exception {
+        when(replayService.getReplay(eq(2L), any()))
+                .thenReturn(new ReplayVO(2L, true, true, "https://cdn/replay/2/k.flv", 1800));
+
+        mockMvc.perform(get("/api/v1/live/2/replay"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(true))
+                .andExpect(jsonPath("$.data.replayUrl").value("https://cdn/replay/2/k.flv"));
     }
 }

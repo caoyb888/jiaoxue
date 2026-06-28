@@ -15,4 +15,7 @@ public class LessonLiveInfo {
 
     /** 课堂状态：0-未开始 1-进行中 2-已结束。 */
     private Integer status;
+
+    /** 回放是否对学生可见：0-隐藏 1-可见。 */
+    private Integer replayVisible;
 }
