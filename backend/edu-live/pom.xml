@@ -92,6 +92,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- 直播回放上传 MinIO（S8-02 SRS DVR → MinIO） -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
