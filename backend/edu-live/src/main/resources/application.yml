@@ -47,6 +47,11 @@ redisson:
   address: redis://${REDIS_HOST:100.84.68.115}:${REDIS_PORT:16379}
   database: 4
 
+live:
+  # SRS 流媒体地址（S8-02 集成 SRS）；仅 ONLINE_CLASS 模式下发
+  rtmp-base: ${LIVE_RTMP_BASE:rtmp://100.84.68.115:1935/live}
+  hls-base: ${LIVE_HLS_BASE:http://100.84.68.115:8080/live}
+
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
