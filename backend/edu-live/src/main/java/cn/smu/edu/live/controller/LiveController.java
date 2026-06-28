@@ -4,7 +4,9 @@ import cn.smu.edu.common.aop.OperationLog;
 import cn.smu.edu.common.result.Result;
 import cn.smu.edu.common.util.UserContext;
 import cn.smu.edu.live.domain.vo.LiveConfigVO;
+import cn.smu.edu.live.domain.vo.ReplayVO;
 import cn.smu.edu.live.service.LiveService;
+import cn.smu.edu.live.service.ReplayService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class LiveController {
 
     private final LiveService liveService;
+    private final ReplayService replayService;
 
     /** 开启课堂直播（按 live_mode 分级）。 */
     @PostMapping("/{lessonId}/start")
@@ -43,5 +46,11 @@ public class LiveController {
     @OperationLog(module = "live", operation = "结束课堂直播")
     public Result<LiveConfigVO> stop(@PathVariable Long lessonId) {
         return Result.ok(liveService.stopLive(lessonId, UserContext.getUserId()));
+    }
+
+    /** 获取课堂回放（replay_visible 控制学生可见性）。 */
+    @GetMapping("/{lessonId}/replay")
+    public Result<ReplayVO> replay(@PathVariable Long lessonId) {
+        return Result.ok(replayService.getReplay(lessonId, UserContext.getRoles()));
     }
 }
