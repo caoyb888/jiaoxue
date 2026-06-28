@@ -50,6 +50,10 @@ spring:
           uri: lb://edu-grade
           predicates:
             - Path=/api/v1/grade/**
+        - id: edu-live
+          uri: lb://edu-live
+          predicates:
+            - Path=/api/v1/live/**
         # AI对话 SSE 流式：关闭响应超时，避免长连接被网关切断（不缓冲、逐块透传）
         - id: edu-ai-dialogue
           uri: lb://edu-ai
