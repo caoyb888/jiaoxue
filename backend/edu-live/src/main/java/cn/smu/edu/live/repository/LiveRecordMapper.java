@@ -13,4 +13,9 @@ public interface LiveRecordMapper extends BaseMapper<LiveRecord> {
     @Select("SELECT id, lesson_id, stream_key, push_url, play_url, replay_path, duration_sec, "
             + "status, started_at, ended_at, created_at FROM live_record WHERE lesson_id = #{lessonId}")
     LiveRecord selectByLessonId(@Param("lessonId") Long lessonId);
+
+    /** 按推流密钥查直播记录（SRS 回调以 streamKey 定位）。 */
+    @Select("SELECT id, lesson_id, stream_key, push_url, play_url, replay_path, duration_sec, "
+            + "status, started_at, ended_at, created_at FROM live_record WHERE stream_key = #{streamKey}")
+    LiveRecord selectByStreamKey(@Param("streamKey") String streamKey);
 }
