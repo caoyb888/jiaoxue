@@ -52,7 +52,7 @@ live:
   rtmp-base: ${LIVE_RTMP_BASE:rtmp://100.84.68.115:1935/live}
   hls-base: ${LIVE_HLS_BASE:http://100.84.68.115:8080/live}
   # 直播回放 MinIO 桶（S8-02 DVR 上传；S8-07 配生命周期 60 天转冷存储）
-  replay-bucket: ${LIVE_REPLAY_BUCKET:live-replay}
+  replay-bucket: ${LIVE_REPLAY_BUCKET:edu-live-replay}
 
 minio:
   endpoint: ${MINIO_ENDPOINT:http://100.84.68.115:19000}
