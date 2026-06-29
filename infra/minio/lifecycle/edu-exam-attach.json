@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "exam-attach-expire-90d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "exam/" },
+      "Expiration": { "Days": 90 }
+    }
+  ]
+}

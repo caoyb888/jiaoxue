@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "live-replay-cold-60d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "replay/" },
+      "Transition": { "Days": 60, "StorageClass": "COLD" }
+    }
+  ]
+}

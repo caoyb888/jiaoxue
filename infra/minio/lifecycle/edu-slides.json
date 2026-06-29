@@ -1,0 +1,10 @@
+{
+  "Rules": [
+    {
+      "ID": "slides-archive-365d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "" },
+      "Transition": { "Days": 365, "StorageClass": "COLD" }
+    }
+  ]
+}
