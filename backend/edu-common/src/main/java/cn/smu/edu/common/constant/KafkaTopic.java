@@ -10,6 +10,7 @@ public final class KafkaTopic {
     public static final String EXAM_SUBMIT      = "edu.exam.submit";      // 交卷事件（concurrency=10）
     public static final String TEACHING_EVENTS  = "edu.teaching.events";  // 课堂事件（concurrency=5）
     public static final String NOTICE           = "edu.notice";            // 通知推送
+    public static final String NOTICE_PUBLISH   = "edu.notice.publish";    // 通知公告发布（→批量微信订阅推送）
     public static final String AUDIT_LOG        = "edu.audit.log";        // 操作审计日志
     public static final String STAT_EVENTS      = "edu.stat.events";      // 统计事件→ClickHouse
     public static final String MATERIAL_CONVERT = "edu.material.convert";  // 课件转换（LibreOffice → 图片序列）

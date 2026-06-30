@@ -81,6 +81,10 @@ spring:
           uri: lb://edu-notify
           predicates:
             - Path=/ws/**
+        - id: edu-notify
+          uri: lb://edu-notify
+          predicates:
+            - Path=/api/v1/notice/**
         - id: edu-admin
           uri: lb://edu-admin
           predicates:

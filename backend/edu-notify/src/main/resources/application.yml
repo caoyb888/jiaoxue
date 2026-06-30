@@ -48,6 +48,11 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+notify:
+  wechat:
+    # dev/CI 为 mock：仅记录日志不真发微信订阅消息；生产由 OPS 接入微信模板 API
+    mock-mode: ${WECHAT_MOCK_MODE:true}
+
 logging:
   level:
     cn.smu.edu: INFO
