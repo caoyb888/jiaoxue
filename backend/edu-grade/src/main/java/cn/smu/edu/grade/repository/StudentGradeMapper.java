@@ -20,4 +20,8 @@ public interface StudentGradeMapper extends BaseMapper<StudentGrade> {
             ORDER BY student_id
             """)
     List<StudentGrade> selectByClassId(@Param("classId") Long classId);
+
+    /** 待计算（calc_status=0）的去重教学班 ID，供成绩计算引擎按班批量重算。 */
+    @Select("SELECT DISTINCT class_id FROM student_grade WHERE calc_status = 0")
+    List<Long> selectPendingClassIds();
 }
