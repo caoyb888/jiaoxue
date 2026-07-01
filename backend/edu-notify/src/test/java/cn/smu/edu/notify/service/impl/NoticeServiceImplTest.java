@@ -31,12 +31,14 @@ class NoticeServiceImplTest {
     @Mock
     NoticeMapper noticeMapper;
     @Mock
+    cn.smu.edu.notify.repository.NoticeQueryMapper noticeQueryMapper;
+    @Mock
     NoticeTargetResolver targetResolver;
     @Mock
     KafkaTemplate<String, Object> kafkaTemplate;
 
     private NoticeServiceImpl service() {
-        return new NoticeServiceImpl(noticeMapper, targetResolver, kafkaTemplate);
+        return new NoticeServiceImpl(noticeMapper, noticeQueryMapper, targetResolver, kafkaTemplate);
     }
 
     private NoticePublishDTO dto(String scope) {
@@ -100,5 +102,37 @@ class NoticeServiceImplTest {
     void publish_classWithoutClassId_shouldThrow() {
         assertThatThrownBy(() -> service().publish(7L, "t", dto("CLASS")))
                 .isInstanceOf(BizException.class);
+    }
+
+    @Test
+    void myNotices_shouldCapLimitAt100() {
+        service().myNotices(1L, false, 500);
+        verify(noticeQueryMapper).selectMyNotices(1L, false, 100);
+    }
+
+    @Test
+    void myNotices_nonPositiveLimit_shouldUseDefaultMax() {
+        service().myNotices(1L, true, 0);
+        verify(noticeQueryMapper).selectMyNotices(1L, true, 100);
+    }
+
+    @Test
+    void markRead_firstTime_shouldIncrementReadCount() {
+        org.mockito.Mockito.when(noticeQueryMapper.insertReadIgnore(9L, 1L)).thenReturn(1);
+
+        boolean first = service().markRead(9L, 1L);
+
+        assertThat(first).isTrue();
+        verify(noticeQueryMapper).incrementReadCount(9L);
+    }
+
+    @Test
+    void markRead_duplicate_shouldNotIncrement() {
+        org.mockito.Mockito.when(noticeQueryMapper.insertReadIgnore(9L, 1L)).thenReturn(0);
+
+        boolean first = service().markRead(9L, 1L);
+
+        assertThat(first).isFalse();
+        verify(noticeQueryMapper, never()).incrementReadCount(any());
     }
 }

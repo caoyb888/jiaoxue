@@ -6,8 +6,10 @@ import cn.smu.edu.common.exception.BizException;
 import cn.smu.edu.common.result.ErrorCode;
 import cn.smu.edu.notify.domain.dto.NoticePublishDTO;
 import cn.smu.edu.notify.domain.entity.Notice;
+import cn.smu.edu.notify.domain.vo.NoticeItemVO;
 import cn.smu.edu.notify.domain.vo.NoticeVO;
 import cn.smu.edu.notify.repository.NoticeMapper;
+import cn.smu.edu.notify.repository.NoticeQueryMapper;
 import cn.smu.edu.notify.service.NoticeService;
 import cn.smu.edu.notify.service.NoticeTargetResolver;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,11 @@ public class NoticeServiceImpl implements NoticeService {
 
     private static final int STATUS_PUBLISHED = 2;
 
+    /** myNotices 默认返回上限。 */
+    private static final int MAX_LIMIT = 100;
+
     private final NoticeMapper noticeMapper;
+    private final NoticeQueryMapper noticeQueryMapper;
     private final NoticeTargetResolver targetResolver;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -78,6 +84,27 @@ public class NoticeServiceImpl implements NoticeService {
             throw new BizException(ErrorCode.PARAM_ERROR.getCode(), "通知不存在: " + noticeId);
         }
         return NoticeVO.from(notice);
+    }
+
+    @Override
+    public List<NoticeItemVO> myNotices(Long userId, boolean onlyUnread, int limit) {
+        int capped = limit <= 0 ? MAX_LIMIT : Math.min(limit, MAX_LIMIT);
+        return noticeQueryMapper.selectMyNotices(userId, onlyUnread, capped);
+    }
+
+    @Override
+    public long unreadCount(Long userId) {
+        return noticeQueryMapper.countUnread(userId);
+    }
+
+    @Override
+    @Transactional
+    public boolean markRead(Long noticeId, Long userId) {
+        boolean firstRead = noticeQueryMapper.insertReadIgnore(noticeId, userId) > 0;
+        if (firstRead) {
+            noticeQueryMapper.incrementReadCount(noticeId);
+        }
+        return firstRead;
     }
 
     private void validateScope(NoticePublishDTO dto) {

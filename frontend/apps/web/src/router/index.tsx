@@ -11,6 +11,7 @@ const LiveClassPage = lazy(() => import('../pages/live/LiveClassPage'))
 const GroupDiscussionPage = lazy(() => import('../pages/discussion/GroupDiscussionPage'))
 const PresentationReviewPage = lazy(() => import('../pages/presentation/PresentationReviewPage'))
 const GradeManagePage = lazy(() => import('../pages/grade/GradeManagePage'))
+const NoticeCenterPage = lazy(() => import('../pages/notice/NoticeCenterPage'))
 const MaterialManagePage = lazy(() => import('../pages/course/MaterialManagePage'))
 const ClassHistoryPage = lazy(() => import('../pages/stat/ClassHistoryPage'))
 const WarnListPage = lazy(() => import('../pages/stat/WarnListPage'))
@@ -124,6 +125,7 @@ export function AppRouter() {
           <Route path="/lesson/:lessonId/discussion" element={<RequireAuth><GroupDiscussionPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/presentation" element={<RequireAuth><PresentationReviewPage /></RequireAuth>} />
           <Route path="/grade" element={<RequireAuth><GradeManagePage /></RequireAuth>} />
+          <Route path="/notice" element={<RequireAuth><NoticeCenterPage /></RequireAuth>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
