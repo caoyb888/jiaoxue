@@ -18,4 +18,6 @@ export { discussionApi, useGroupDiscussion, useSummarizeDiscussion } from './mod
 export type { GroupDiscussionVO, DiscussionMessageVO } from './modules/discussion'
 export { presentationApi, usePresentationReview, useReviewPresentation } from './modules/presentation'
 export type { PresentationReviewVO, ReviewDimensionVO, PresentationReviewDTO } from './modules/presentation'
+export { gradeApi, downloadBlob, GRADE_TYPES, useClassGrades, useGradeRules, useCreateGradeRule, useDeleteGradeRule, useImportOfflineGrades } from './modules/grade'
+export type { StudentGradeVO, GradeRuleVO, GradeRuleListVO, GradeRuleCreateDTO, OfflineImportResultVO } from './modules/grade'
 export type { RealtimeOverviewVO, DeptPeriodStatVO, DeptHistoryVO, ClassDailyStatVO, ClassHistoryVO, DeptRankItem, WarnVO, WarnQueryParams, StatPageResult } from './modules/stat'
