@@ -20,4 +20,6 @@ export { presentationApi, usePresentationReview, useReviewPresentation } from '.
 export type { PresentationReviewVO, ReviewDimensionVO, PresentationReviewDTO } from './modules/presentation'
 export { gradeApi, downloadBlob, GRADE_TYPES, useClassGrades, useGradeRules, useCreateGradeRule, useDeleteGradeRule, useImportOfflineGrades } from './modules/grade'
 export type { StudentGradeVO, GradeRuleVO, GradeRuleListVO, GradeRuleCreateDTO, OfflineImportResultVO } from './modules/grade'
+export { notifyApi, useMyNotices, useUnreadNoticeCount, useMarkNoticeRead, usePublishNotice } from './modules/notify'
+export type { NoticeItemVO, NoticeVO, NoticePublishDTO, NoticeScope, NoticeTargetRole } from './modules/notify'
 export type { RealtimeOverviewVO, DeptPeriodStatVO, DeptHistoryVO, ClassDailyStatVO, ClassHistoryVO, DeptRankItem, WarnVO, WarnQueryParams, StatPageResult } from './modules/stat'
