@@ -169,6 +169,9 @@ importers:
       echarts:
         specifier: ^5.5.0
         version: 5.6.0
+      hls.js:
+        specifier: ^1.6.16
+        version: 1.6.16
       idb:
         specifier: ^8.0.0
         version: 8.0.3
