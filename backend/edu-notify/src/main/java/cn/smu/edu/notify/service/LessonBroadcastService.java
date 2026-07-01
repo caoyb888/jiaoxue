@@ -28,4 +28,7 @@ public interface LessonBroadcastService {
 
     /** 向指定用户发送单播消息 */
     void sendToUser(Long userId, String type, Object payload);
+
+    /** 广播分组讨论消息（组内学生 + 教师实时可见） */
+    void broadcastDiscussion(Long lessonId, Long groupId, Object payload);
 }

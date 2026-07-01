@@ -63,6 +63,12 @@ public class LessonBroadcastServiceImpl implements LessonBroadcastService {
     }
 
     @Override
+    public void broadcastDiscussion(Long lessonId, Long groupId, Object payload) {
+        String topic = "/topic/lesson/" + lessonId + "/group/" + groupId + "/discussion";
+        messagingTemplate.convertAndSend(topic, payload);
+    }
+
+    @Override
     public void sendToUser(Long userId, String type, Object payload) {
         messagingTemplate.convertAndSendToUser(
                 userId.toString(),

@@ -14,4 +14,6 @@ export type { AiReviewResultVO, TeacherReviewDTO, MindmapNode, MindmapVO, Dialog
 export { statApi, useRealtimeOverview, useDeptHistory, useClassHistory, useDeptRanking, STAT_REFRESH_MS, warnApi, useWarnList, useHandleWarn } from './modules/stat'
 export { liveApi, useLiveConfig, useReplay } from './modules/live'
 export type { LiveConfigVO, ReplayVO } from './modules/live'
+export { discussionApi, useGroupDiscussion, useSummarizeDiscussion } from './modules/discussion'
+export type { GroupDiscussionVO, DiscussionMessageVO } from './modules/discussion'
 export type { RealtimeOverviewVO, DeptPeriodStatVO, DeptHistoryVO, ClassDailyStatVO, ClassHistoryVO, DeptRankItem, WarnVO, WarnQueryParams, StatPageResult } from './modules/stat'

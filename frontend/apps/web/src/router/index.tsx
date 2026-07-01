@@ -8,6 +8,7 @@ const UserManagePage = lazy(() => import('../pages/admin/users/UserManagePage'))
 const CourseListPage = lazy(() => import('../pages/course/CourseListPage'))
 const ClassroomPage = lazy(() => import('../pages/course/ClassroomPage'))
 const LiveClassPage = lazy(() => import('../pages/live/LiveClassPage'))
+const GroupDiscussionPage = lazy(() => import('../pages/discussion/GroupDiscussionPage'))
 const MaterialManagePage = lazy(() => import('../pages/course/MaterialManagePage'))
 const ClassHistoryPage = lazy(() => import('../pages/stat/ClassHistoryPage'))
 const WarnListPage = lazy(() => import('../pages/stat/WarnListPage'))
@@ -118,6 +119,7 @@ export function AppRouter() {
           <Route path="/lesson/:lessonId/ai-chat" element={<RequireAuth><DialoguePage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/ai-chat/overview" element={<RequireAuth><DialogueOverviewPage /></RequireAuth>} />
           <Route path="/lesson/:lessonId/live" element={<RequireAuth><LiveClassPage /></RequireAuth>} />
+          <Route path="/lesson/:lessonId/discussion" element={<RequireAuth><GroupDiscussionPage /></RequireAuth>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
