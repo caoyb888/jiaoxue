@@ -11,6 +11,7 @@
     "test:s3": "playwright test tests/s3-interaction.spec.ts",
     "test:s4": "playwright test tests/s4-exam-bank.spec.ts",
     "test:s5": "playwright test tests/s5-exam-online.spec.ts",
+    "test:s8": "playwright test tests/s8-full-lesson.spec.ts",
     "report": "playwright show-report /tmp/playwright-report"
   },
   "devDependencies": {
